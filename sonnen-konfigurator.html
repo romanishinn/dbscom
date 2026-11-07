@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sonnenschutz-Preisrechner D&amp;B</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+:root { --bg:#eef0f1; --panel:#fff; --ink:#1c2226; --muted:#5b666e; --line:#d6dadd; --accent:#2c6a86; --accent-soft:#e1edf2; --gelb:#f5c518; --gelb-ink:#1c1c1c;
+  --f-display:"Archivo","Geologica","Helvetica Neue",Arial,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; color-scheme:light; }
+* { box-sizing:border-box; } html,body { margin:0; } [hidden] { display:none !important; }
+body { background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.45; }
+.app { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:14px; padding:16px; }
+@media (max-width:860px) { .app { grid-template-columns:1fr; padding:10px; } .pic { display:none !important; } }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:18px; min-width:0; }
+h1 { font-family:var(--f-display); font-size:20px; margin:0 0 2px; letter-spacing:-.01em; }
+.sub { color:var(--muted); font-size:13px; margin:0 0 6px; }
+.step { display:grid; grid-template-columns:34px 1fr; gap:12px; padding:14px 0; border-top:1px solid var(--line); align-items:start; }
+.step:first-of-type { border-top:0; }
+.step i { width:30px; height:30px; border-radius:50%; background:var(--gelb); color:var(--gelb-ink); font:700 14px var(--f-body); font-style:normal; display:grid; place-items:center; }
+.step h2 { font-family:var(--f-display); font-size:15px; margin:4px 0 8px; }
+.seg { display:flex; gap:8px; flex-wrap:wrap; }
+.seg button { font:inherit; font-size:14px; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.seg button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); font-weight:600; }
+/* Produktwahl mit Bild */
+.prods { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.prods button { position:relative; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:0; cursor:pointer; overflow:hidden; text-align:left; display:grid; grid-template-rows:auto 1fr; transition:border-color .2s, box-shadow .2s, transform .2s; }
+.prods button:hover { border-color:#9fb0ba; transform:translateY(-2px); box-shadow:0 10px 22px -14px rgba(28,34,38,.45); }
+.prods .im { display:grid; place-items:center; aspect-ratio:4/3; background:radial-gradient(120% 90% at 50% 20%, #fbfcfc 0%, #e6eaec 70%, #dde2e5 100%); }
+.prods .im svg { width:86%; height:auto; display:block; }
+.prods .tx { padding:9px 12px 11px; display:grid; gap:1px; }
+.prods .tx b { font-family:var(--f-display); font-size:15px; letter-spacing:-.01em; }
+.prods .tx small { color:var(--muted); font-size:12px; line-height:1.3; }
+.prods button[aria-pressed="true"] { border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink); }
+.prods button[aria-pressed="true"]::after { content:"✓"; position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:50%; background:var(--gelb); color:var(--gelb-ink); font:700 13px/24px var(--f-body); text-align:center; }
+@media (max-width:520px) { .prods { gap:6px; } .prods .tx { padding:7px 8px 9px; } .prods .tx b { font-size:13.5px; } .prods .tx small { display:none; } }
+.seg button i.c { width:16px; height:16px; border-radius:50%; border:1px solid rgba(0,0,0,.15); display:inline-block; }
+.types { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
+.type { border:1px solid var(--line); border-radius:8px; background:transparent; padding:8px 6px 6px; cursor:pointer; display:grid; gap:4px; justify-items:center; font:500 12px var(--f-body); color:var(--ink); text-align:center; }
+.type[aria-pressed="true"] { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); background:var(--accent-soft); }
+.type svg { width:72px; height:56px; }
+.fields { margin-bottom:10px; }
+.dims { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.dim label { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--muted); margin-bottom:4px; }
+.dim label .num { display:inline-flex; align-items:center; gap:4px; font-family:var(--f-mono); color:var(--ink); }
+.dim label input { width:62px; font:500 15px var(--f-mono); color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:4px 6px; text-align:right; }
+.dim label input:focus-visible, .spec input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+input[type=range] { width:100%; accent-color:var(--accent); }
+.dim small { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; }
+.res { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px; }
+@media (max-width:620px) { .res { grid-template-columns:1fr; } }
+.tier { border:1px solid var(--line); border-radius:8px; padding:12px 14px; display:grid; gap:4px; background:var(--panel); align-content:start; }
+.tier.rec { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+.tier .lvl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); font-weight:700; }
+.tier .name { font-weight:600; }
+.tier .sys { color:var(--muted); font-size:12.5px; }
+.tier .price { font-family:var(--f-display); font-size:24px; letter-spacing:-.02em; margin-top:4px; }
+.tier .price small { font:400 12px var(--f-body); color:var(--muted); margin-left:4px; }
+.tier button { margin-top:8px; font:600 13px var(--f-body); border:0; border-radius:999px; padding:9px 12px; cursor:pointer; background:var(--ink); color:#fff; }
+.tier.rec button { background:var(--gelb); color:var(--gelb-ink); }
+.disc { font-size:12px; color:var(--muted); margin:12px 0 0; line-height:1.4; }
+.hint { background:#fbf0e2; color:#a3621b; border-radius:6px; padding:8px 10px; font-size:12.5px; margin-top:10px; }
+/* Spezifikation */
+.spec { margin-top:4px; }
+.spec table { width:100%; border-collapse:collapse; font-size:13.5px; }
+.spec th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; padding:6px 6px; border-bottom:1px solid var(--line); }
+.spec td { padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+.spec td.n { font-family:var(--f-mono); white-space:nowrap; text-align:right; }
+.spec td .d { color:var(--muted); font-size:12px; }
+.spec input.q { width:52px; font:500 14px var(--f-mono); text-align:center; border:1px solid var(--line); border-radius:4px; padding:4px; background:var(--bg); }
+.spec .act { white-space:nowrap; }
+.spec .act button { font:500 12px var(--f-body); border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:4px 10px; cursor:pointer; margin-left:4px; }
+.spec tfoot td { border:0; padding-top:12px; }
+.spec tfoot b { font-family:var(--f-display); font-size:22px; letter-spacing:-.02em; }
+.spec .empty { color:var(--muted); font-size:13px; }
+.btn { font:600 15px var(--f-body); border:0; border-radius:999px; padding:12px 20px; cursor:pointer; background:var(--gelb); color:var(--gelb-ink); display:inline-flex; align-items:center; gap:8px; }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.pic { display:grid; align-content:start; gap:10px; position:sticky; top:16px; }
+.view { background:linear-gradient(180deg,#f7f8f9,#e9ecee); border:1px solid var(--line); border-radius:6px; padding:16px; display:grid; place-items:center; min-height:300px; }
+.view svg { max-width:100%; height:auto; }
+.fact { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px 10px; }
+.fact span { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); display:block; }
+.fact b { font-family:var(--f-mono); font-weight:500; }
+#steps .step:first-of-type { border-top:1px solid var(--line); }
+.lensum { margin:10px 0 0; font-size:13.5px; color:var(--muted); } .lensum b { color:var(--ink); font-family:var(--f-mono); font-weight:500; }
+.prods { grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media (max-width:620px) { .prods { grid-template-columns:repeat(2,minmax(0,1fr)); } .prods .tx small { display:block !important; } }
+.dims { grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); }
+.tier.off { opacity:.55; }
+/* ===== Mobil: volle Breite, Nummer neben der Überschrift, Produkte als Liste ===== */
+@media (max-width:560px) {
+  .app { padding:0; gap:0; }
+  .panel { border:0; border-radius:0; padding:18px 16px 22px; }
+  h1 { font-size:22px; }
+  .step { grid-template-columns:26px minmax(0,1fr); column-gap:10px; row-gap:12px; padding:18px 0; }
+  .step > div { display:contents; }
+  .step > div > * { grid-column:1 / -1; min-width:0; }
+  .step > div > h2 { grid-column:2; margin:0; align-self:center; font-size:16px; }
+  .step i { width:26px; height:26px; font-size:13px; }
+  .prods { grid-template-columns:minmax(0,1fr) !important; gap:8px; }
+  .prods button { grid-template-columns:96px minmax(0,1fr); grid-template-rows:none; align-items:stretch; border-radius:12px; }
+  .prods button:hover { transform:none; box-shadow:none; }
+  .prods .im { aspect-ratio:auto; min-height:76px; height:100%; }
+  .prods .im svg { width:92%; }
+  .prods .tx { padding:10px 40px 10px 14px; align-content:center; }
+  .prods .tx b { font-size:15.5px !important; }
+  .prods .tx small { display:block !important; font-size:12.5px; }
+  .prods button[aria-pressed="true"]::after { top:50%; margin-top:-12px; right:12px; }
+  .dims { grid-template-columns:minmax(0,1fr); gap:18px; }
+  .dim label { gap:10px; }
+  .dim label > span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .dim label input { width:72px; font-size:16px; }
+  .seg { gap:8px; }
+  .seg button { text-align:left; max-width:100%; padding:9px 14px; min-height:40px; }
+  .res { grid-template-columns:minmax(0,1fr) !important; }
+  .spec table, .spec thead, .spec tbody, .spec tfoot, .spec tr { display:block; }
+  .spec thead { display:none; }
+  .spec tbody tr { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:6px 10px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .spec tbody td { display:block; padding:0; border:0; }
+  .spec tbody td:first-child { grid-column:1 / -1; }
+  .spec tbody td:nth-child(3) { color:var(--muted); text-align:left; }
+  .spec .act button { margin:6px 6px 0 0; padding:6px 12px; font-size:12.5px; }
+  .spec tfoot { display:block; }
+  .spec tfoot tr { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-top:14px; }
+  .spec tfoot td { display:block; padding:0; text-align:left !important; }
+  .btn { width:100%; justify-content:center; }
+}
+/* ===== Bedienkomfort ===== */
+.ux-pre { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.ux-pre button { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:7px 12px; cursor:pointer; display:grid; gap:1px; text-align:left; line-height:1.2; }
+.ux-pre button b { font-size:13.5px; }
+.ux-pre button small { font-size:12px; color:var(--muted); font-family:var(--f-mono); }
+.ux-pre button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); }
+.ux-unk { align-self:center; font-size:13.5px; color:var(--accent); text-decoration:underline; text-underline-offset:3px; margin-left:4px; }
+.ux-adv { width:100%; display:flex; justify-content:space-between; align-items:center; gap:12px; font:inherit; color:var(--ink); background:var(--bg); border:1px dashed var(--line); border-radius:10px; padding:12px 14px; margin:6px 0; cursor:pointer; text-align:left; }
+.ux-adv span { display:grid; gap:2px; min-width:0; }
+.ux-adv b { font-size:14.5px; }
+.ux-adv small { font-size:12.5px; color:var(--muted); }
+.ux-adv i { font-style:normal; font-size:20px; line-height:1; color:var(--muted); }
+.ux-hide { display:none !important; }
+.ux-trust { margin:12px 0 0; font-size:13px; color:var(--ink); }
+
+@media (max-width:560px) { .ux-pre button { flex:1 1 calc(50% - 4px); } .ux-unk { flex-basis:100%; margin:2px 0 0; } }
+
+/* ===== Markenfarben Design & Building Solutions ===== */
+:root { --bg:#efeeeb; --panel:#fff; --ink:#110f0d; --muted:#5f5850; --line:#dcd7d0; --accent:#796b53; --accent-soft:#eee8de; --gelb:#796b53; --gelb-ink:#fff;
+  --f-display:"Outfit","Geologica","Helvetica Neue",Arial,sans-serif; --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif; }
+.ux-trust b { color:var(--accent); }
+.hint-sw { color:var(--gelb-ink) !important; }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <section class="panel">
+    <h1 data-t="title"></h1>
+    <p class="sub" data-t="subtitle"></p>
+    <div class="step"><i>1</i><div><h2 data-t="s_product"></h2><div class="prods" id="seg-prod" role="group"></div></div></div>
+    <div id="steps"></div>
+    <div class="step"><i>€</i><div><h2 id="res-title"></h2><div class="res" id="res"></div><p class="disc" id="disc"></p></div></div>
+    <div class="step"><i>≡</i><div><h2 data-t="s_spec"></h2>
+      <div class="spec" id="spec"></div>
+      <p class="disc" data-t="spec_hint"></p>
+      <p style="margin:14px 0 0"><button type="button" class="btn" id="send" data-t="send"></button></p>
+    </div></div>
+  </section>
+  <aside class="pic">
+    <div class="view"><svg id="draw" viewBox="0 0 300 300" role="img" aria-label=""></svg></div>
+    <div class="fact"><span data-t="f_dim"></span><b id="f-dim"></b></div>
+    <div class="fact"><span data-t="f_sel"></span><b id="f-sel"></b></div>
+  </aside>
+</div>
+<script>
+/* ============ PREISMODELL (Richtpreise inkl. 20 % MwSt. und Lieferung in Wien, ohne Montage; Referenz Fenster 120 × 150 cm) ============ */
+var REF = 1.8; /* m² */
+var P = {
+  roll: { ref: [120, 150], lim: { w: [60, 300], h: [60, 300] }, k: 0.5, tiers: [
+      { id: 'aufsatz', lvl: 'Beim Fenstertausch', name: 'Aufsatzrollladen', sys: 'Kasten sitzt auf dem Fenster', base: 390 },
+      { id: 'vorbau', lvl: 'Zum Nachrüsten', name: 'Vorbaurollladen SK45', sys: 'Kasten außen an der Fassade', base: 490 },
+      { id: 'up', lvl: 'Unsichtbar', name: 'Unterputzrollladen', sys: 'Kasten verschwindet in der Wand', base: 590 } ] },
+  zip: { ref: [120, 150], lim: { w: [80, 500], h: [100, 350] }, k: 0.55, tiers: [
+      { id: 'zip', lvl: 'Fenster und Türen', name: 'ZIP-Screen', sys: 'Funkmotor · Stoff im Reißverschluss geführt', base: 890 } ] },
+  raff: { ref: [120, 150], lim: { w: [55, 550], h: [60, 300] }, k: 0.55, tiers: [
+      { id: 'e', lvl: 'Standard', name: 'RAFF-e', sys: 'bis 4 m breit · Motor', base: 790, maxW: 400 },
+      { id: 'i', lvl: 'Komfort', name: 'RAFF-i', sys: 'bis 5,5 m breit · Motor · leiser Lauf', base: 990 },
+      { id: 'is', lvl: 'Automatik', name: 'RAFF-i mit Sensoren', sys: 'fährt nach Sonne und Wind', base: 1290 } ] },
+  laden: { ref: [120, 150], lim: { w: [50, 240], h: [80, 260] }, k: 0.55, tiers: [
+      { id: 'persiane', lvl: 'Aluminium', name: 'Eko Persiane', sys: 'pulverbeschichtet · 10 Jahre Garantie auf die Farbe', base: 590 } ] },
+  verto: { ref: [400, 250], lim: { w: [200, 700], h: [200, 350], vd: [200, 700], vzier: [40, 300] }, pergola: true, tiers: [
+      { id: 'verto', lvl: 'Vertikale Profile', name: 'WIN VERTO', sys: 'Aluminium 35 × 60 mm · Abstand 55 mm · pulverbeschichtet', base: 0 } ] }
+};
+/* ===== WIN VERTO: Preismodell exakt nach Preisliste 07.2026 (Profil = Grundpreis(Höhe) + (N−5)×Aufpreis(Höhe)); N = Anzahl Profile je Lauf, Breite = 90·N−55 mm ===== */
+var VERTO = {
+  heights: [1950, 2350, 2950, 3150, 3350, 3950],
+  base: { 1950: 317, 2350: 377, 2950: 466, 3150: 557, 3350: 591, 3950: 691 },
+  per:  { 1950: 53,  2350: 64,  2950: 80,  3150: 96,  3350: 102, 3950: 120 },
+  ledPer:  { none: 0, white: 60, rgb: 120, rgbw: 135 },  /* € je Profil, indikativ */
+  ledCtrl: { none: 0, white: 250, rgb: 250, rgbw: 270 }, /* Steuerung einmalig */
+  corner: 53, colour: { std: 0, nonstd: 0.15, excl: 0.40, holz: 1.00 }, colourMin: 70,
+  /* Typologien: runs = Seiten (B = Breite, T = Tiefe, Z = Zierbreite), corners = Eckverbindungen */
+  types: [
+    { id: 'akzent', runs: ['Z'],                corners: 0 },
+    { id: 'front',  runs: ['B'],                corners: 0 },
+    { id: 'ecke',   runs: ['B', 'T'],           corners: 1 },
+    { id: 'gegen',  runs: ['B', 'B'],           corners: 0 },
+    { id: 'u',      runs: ['B', 'T', 'T'],      corners: 2 },
+    { id: 'rund',   runs: ['B', 'T', 'B', 'T'], corners: 4 }
+  ]
+};
+function vTier(mm) { for (var i = 0; i < VERTO.heights.length; i++) if (VERTO.heights[i] >= mm) return VERTO.heights[i]; return 3950; }
+function vN(widthMm) { return Math.max(5, Math.round((widthMm + 55) / 90)); }
+function vRuns() {
+  var B = S.w * 10, T = S.vd * 10, Z = Math.min(S.vzier, S.w) * 10, map = { B: B, T: T, Z: Z };
+  return (VERTO.types.filter(function (x) { return x.id === S.vtyp; })[0] || VERTO.types[0]).runs.map(function (r) { return map[r]; });
+}
+function vCorners() { return (VERTO.types.filter(function (x) { return x.id === S.vtyp; })[0] || VERTO.types[0]).corners; }
+function vCalc() {
+  var needMm = S.h * 10 - (S.vlevel === 'a' ? 220 : 0), tier = vTier(needMm);
+  var runs = vRuns(), N = runs.map(vN), total = N.reduce(function (a, b) { return a + b; }, 0);
+  var prof = N.reduce(function (a, n) { return a + VERTO.base[tier] + (n - 5) * VERTO.per[tier]; }, 0);
+  var cpct = VERTO.colour[S.vcol] || 0, col = prof * cpct; if (cpct > 0) col = Math.max(col, VERTO.colourMin);
+  var led = S.vled === 'none' ? 0 : VERTO.ledPer[S.vled] * total + VERTO.ledCtrl[S.vled];
+  var corner = vCorners() * VERTO.corner;
+  return { tier: tier, N: N, total: total, price: prof + col + led + corner };
+}
+var F = {
+  drive: { gurt: 0, kurbel: 40, motor: 190, solar: 390 },     /* Rollladen, € */
+  armor: { alu: 1, rc2: 1.25 },                                 /* Rollladen-Panzer */
+  colour: { std: 1, ral: 1.1, holz: 1.15 },
+  fabric: { soltis: 1, dark: 1.12, view: 1 },                   /* ZIP */
+  zipDrive: { funk: 0, solar: 250 },
+  slat: { c80: 1, z90: 1.08 },                                  /* Raffstore */
+  box: { auf: 1, unter: 1.06 },
+  open: { dreh: 1, schiebe: 1.3 },                              /* Läden */
+  louv: { fest: 1, beweglich: 1.15 },
+  sensor: 290, insect: 119
+};
+
+/* ============ TEXTE ============ */
+var LANG = (new URLSearchParams(location.search).get('lang') || 'de').slice(0, 2);
+var T = {
+  de: { title: 'Was kostet Sonnenschutz?', subtitle: 'Fenstermaß eingeben, Ausstattung wählen, und Sie sehen sofort den Richtpreis.',
+    s_product: 'Produkt', s_size: 'Fenstermaß', s_sit: 'Situation', s_drive: 'Bedienung', s_armor: 'Panzer', s_colour: 'Farbe', s_extra: 'Zusatz', s_fabric: 'Stoff', s_sensor: 'Automatik', s_slat: 'Lamelle', s_box: 'Kasten', s_open: 'Art', s_louv: 'Lamellen', s_spec: 'Ihre Spezifikation',
+    p_roll: 'Rollladen', p_zip: 'ZIP-Screen', p_raff: 'Raffstore', p_laden: 'Fensterläden',
+    pd_roll: 'Dunkel, ruhig, sicher', pd_zip: 'Sonne weg, Blick bleibt', pd_raff: 'Licht stufenlos lenken', pd_laden: 'Klassisch, aus Alu',
+    width: 'Breite', height: 'Höhe',
+    sit_new: 'Mit neuen Fenstern', sit_old: 'An bestehenden Fenstern', sit_bau: 'Neubau oder Fassade neu',
+    d_gurt: 'Gurt', d_kurbel: 'Kurbel', d_motor: 'Funkmotor', d_solar: 'Solarmotor', zd_funk: 'Funkmotor', zd_solar: 'Solarmotor (ohne Kabel)',
+    a_alu: 'Aluminium, ausgeschäumt', a_rc2: 'Einbruchhemmend RC2',
+    c_std: 'Weiß, Grau oder Anthrazit', c_ral: 'Wunsch-RAL', c_holz: 'Holzoptik',
+    x_none: 'Ohne', x_insect: 'Mit Insektenschutz',
+    f_soltis: 'Soltis, hält Hitze ab', f_dark: 'Verdunkelnd', f_view: 'Extra durchsichtig',
+    sn_none: 'Ohne', sn_yes: 'Sonnen- und Windsensor',
+    sl_c80: 'C80, flach', sl_z90: 'Z90, schließt dichter', b_auf: 'Aufputz', b_unter: 'Unterputz',
+    o_dreh: 'Drehläden', o_schiebe: 'Schiebeläden', l_fest: 'Feste Lamellen', l_beweglich: 'Bewegliche Lamellen',
+    res: 'Ihr Richtpreis pro Fenster', rec: 'Empfehlung', choose: 'In die Liste', too_wide: 'nur bis 4 m Breite',
+    disc: 'Richtpreis inkl. 20 % MwSt. und Lieferung in Wien und Umgebung, ohne Montage und Elektroanschluss. Den Fixpreis nennen wir nach dem kostenlosen Aufmaß.',
+    empty: 'Noch keine Position. Wählen Sie oben eine Ausführung und tippen Sie auf „In die Liste“.', th_pos: 'Position', th_qty: 'Menge', th_price: 'Preis', th_sum: 'Summe', total: 'Gesamt, Richtpreis', edit: 'Bearbeiten', del: 'Entfernen',
+    spec_hint: 'Menge direkt in der Tabelle ändern, zum Beispiel für mehrere gleiche Fenster. „Bearbeiten“ lädt die Position zurück in den Rechner.', send: 'Angebot anfordern',
+    msg_head: 'Anfrage aus dem Sonnenschutz-Preisrechner:', msg_total: 'Summe Richtpreis: {sum}', f_dim: 'Fenstermaß', f_sel: 'Ausführung', state: '70 % geschlossen',
+    p_verto: 'WIN VERTO', pd_verto: 'Vertikale Profile für die Pergola', v_res: 'Ihr Richtpreis', v_typ: 'Was verkleiden?', v_level: 'Höhe der Profile', v_perg: 'Maße der Pergola', v_led: 'LED-Beleuchtung', v_b: 'Breite', v_t: 'Tiefe', v_h: 'Höhe', v_z: 'Zierbreite', v_pcs: 'Profile',
+    vt_akzent: 'Teilfläche', vt_front: 'Eine Seite', vt_ecke: 'Über Eck', vt_gegen: 'Zwei Seiten', vt_u: 'Drei Seiten (U)', vt_rund: 'Rundherum',
+    vl_b: 'Volle Höhe (bis Kranz)', vl_a: 'Bis zum Lamellendach', vled_none: 'Ohne', vled_white: 'Weiß (3000/4000K)', vled_rgb: 'RGB (Farbe)', vled_rgbw: 'RGBW',
+    vc_std: 'Standard (Cremeweiß / Anthrazit)', vc_nonstd: 'Andere RAL-Farbe', vc_excl: 'Exklusiv: Struktur / Metallic', vc_holz: 'Holzoptik',
+    v_disc: 'Richtpreis für die vertikalen Profile inkl. Lieferung, ohne Montage und ohne Vorbereitung des Pergolarahmens. Standardfarben (Cremeweiß, Anthrazit) im Preis. Endpreis nach Aufmaß und Pergola-Planung.' },
+  en: { title: 'What does sun protection cost?', subtitle: 'Enter the window size, choose the options and you instantly see the guide price.',
+    s_product: 'Product', s_size: 'Window size', s_sit: 'Situation', s_drive: 'Operation', s_armor: 'Curtain', s_colour: 'Colour', s_extra: 'Extra', s_fabric: 'Fabric', s_sensor: 'Automation', s_slat: 'Slat', s_box: 'Box', s_open: 'Type', s_louv: 'Louvres', s_spec: 'Your specification',
+    p_roll: 'Roller shutter', p_zip: 'ZIP screen', p_raff: 'Venetian blind', p_laden: 'Window shutters',
+    pd_roll: 'Dark, quiet, secure', pd_zip: 'Sun out, view stays', pd_raff: 'Steer the light freely', pd_laden: 'Classic, in aluminium',
+    width: 'Width', height: 'Height',
+    sit_new: 'With new windows', sit_old: 'On existing windows', sit_bau: 'New build or new facade',
+    d_gurt: 'Strap', d_kurbel: 'Crank', d_motor: 'Radio motor', d_solar: 'Solar motor', zd_funk: 'Radio motor', zd_solar: 'Solar motor (no cable)',
+    a_alu: 'Aluminium, foam-filled', a_rc2: 'Burglar-resistant RC2',
+    c_std: 'White, grey or anthracite', c_ral: 'Any RAL', c_holz: 'Wood look',
+    x_none: 'None', x_insect: 'With insect screen',
+    f_soltis: 'Soltis, blocks heat', f_dark: 'Blackout', f_view: 'Extra see-through',
+    sn_none: 'None', sn_yes: 'Sun and wind sensor',
+    sl_c80: 'C80, flat', sl_z90: 'Z90, closes tighter', b_auf: 'Surface-mounted', b_unter: 'Concealed',
+    o_dreh: 'Hinged shutters', o_schiebe: 'Sliding shutters', l_fest: 'Fixed louvres', l_beweglich: 'Movable louvres',
+    res: 'Your guide price per window', rec: 'Recommended', choose: 'Add to list', too_wide: 'only up to 4 m wide',
+    disc: 'Guide price incl. 20% VAT and delivery in Vienna and surroundings, excluding installation and electrical connection. We quote the fixed price after the free measurement.',
+    empty: 'No items yet. Choose a version above and tap “Add to list”.', th_pos: 'Item', th_qty: 'Qty', th_price: 'Price', th_sum: 'Total', total: 'Total guide price', edit: 'Edit', del: 'Remove',
+    spec_hint: 'Change the quantity in the table, e.g. for several identical windows. “Edit” loads the item back into the calculator.', send: 'Request a quote',
+    msg_head: 'Request from the sun protection price calculator:', msg_total: 'Total guide price: {sum}', f_dim: 'Window size', f_sel: 'Version', state: '70 % closed',
+    p_verto: 'WIN VERTO', pd_verto: 'Vertical profiles for the pergola', v_res: 'Your guide price', v_typ: 'What to clad?', v_level: 'Profile height', v_perg: 'Pergola size', v_led: 'LED lighting', v_b: 'Width', v_t: 'Depth', v_h: 'Height', v_z: 'Accent width', v_pcs: 'profiles',
+    vt_akzent: 'Part of a side', vt_front: 'One side', vt_ecke: 'Around a corner', vt_gegen: 'Two sides', vt_u: 'Three sides (U)', vt_rund: 'All around',
+    vl_b: 'Full height (to crown)', vl_a: 'Up to the louvre roof', vled_none: 'None', vled_white: 'White (3000/4000K)', vled_rgb: 'RGB (colour)', vled_rgbw: 'RGBW',
+    vc_std: 'Standard (cream white / anthracite)', vc_nonstd: 'Other RAL colour', vc_excl: 'Exclusive: structure / metallic', vc_holz: 'Wood look',
+    v_disc: 'Guide price for the vertical profiles incl. delivery, excluding installation and preparation of the pergola frame. Standard colours (cream white, anthracite) included. Final price after measurement and pergola planning.' },
+  ru: { title: 'Сколько стоит солнцезащита?', subtitle: 'Введите размер окна, выберите опции — и сразу увидите ориентировочную цену.',
+    s_product: 'Продукт', s_size: 'Размер окна', s_sit: 'Ситуация', s_drive: 'Управление', s_armor: 'Полотно', s_colour: 'Цвет', s_extra: 'Дополнительно', s_fabric: 'Ткань', s_sensor: 'Автоматика', s_slat: 'Ламель', s_box: 'Короб', s_open: 'Тип', s_louv: 'Ламели', s_spec: 'Ваша спецификация',
+    p_roll: 'Рольставни', p_zip: 'ZIP-скрин', p_raff: 'Раффшторы', p_laden: 'Ставни',
+    pd_roll: 'Темно, тихо, надёжно', pd_zip: 'Солнце снаружи, вид остаётся', pd_raff: 'Свет — как вам удобно', pd_laden: 'Классика из алюминия',
+    width: 'Ширина', height: 'Высота',
+    sit_new: 'С новыми окнами', sit_old: 'На существующие окна', sit_bau: 'Новостройка или новый фасад',
+    d_gurt: 'Лента', d_kurbel: 'Вороток', d_motor: 'Радиомотор', d_solar: 'Солнечный мотор', zd_funk: 'Радиомотор', zd_solar: 'Солнечный мотор (без кабеля)',
+    a_alu: 'Алюминий с пенонаполнителем', a_rc2: 'Взломостойкое RC2',
+    c_std: 'Белый, серый или антрацит', c_ral: 'Любой RAL', c_holz: 'Под дерево',
+    x_none: 'Без', x_insect: 'С москитной сеткой',
+    f_soltis: 'Soltis, держит жару', f_dark: 'Затемняющая', f_view: 'Особо прозрачная',
+    sn_none: 'Без', sn_yes: 'Датчик солнца и ветра',
+    sl_c80: 'C80, плоская', sl_z90: 'Z90, закрывается плотнее', b_auf: 'Накладной', b_unter: 'Скрытый',
+    o_dreh: 'Распашные', o_schiebe: 'Раздвижные', l_fest: 'Неподвижные ламели', l_beweglich: 'Поворотные ламели',
+    res: 'Ориентировочная цена за окно', rec: 'Рекомендуем', choose: 'В список', too_wide: 'только до 4 м ширины',
+    disc: 'Ориентировочная цена вкл. 20 % НДС и доставку по Вене и окрестностям, без монтажа и подключения к электросети. Фиксированную цену назовём после бесплатного замера.',
+    empty: 'Пока пусто. Выберите вариант выше и нажмите «В список».', th_pos: 'Позиция', th_qty: 'Кол-во', th_price: 'Цена', th_sum: 'Сумма', total: 'Итого, ориентировочно', edit: 'Изменить', del: 'Удалить',
+    spec_hint: 'Количество меняйте прямо в таблице, например для нескольких одинаковых окон. «Изменить» вернёт позицию в калькулятор.', send: 'Запросить предложение',
+    msg_head: 'Запрос из калькулятора солнцезащиты:', msg_total: 'Итого ориентировочно: {sum}', f_dim: 'Размер окна', f_sel: 'Исполнение', state: 'закрыто на 70 %',
+    p_verto: 'WIN VERTO', pd_verto: 'Вертикальные профили для перголы', v_res: 'Ориентировочная цена', v_typ: 'Что зашиваем?', v_level: 'Высота профилей', v_perg: 'Размеры перголы', v_led: 'LED-подсветка', v_b: 'Ширина', v_t: 'Глубина', v_h: 'Высота', v_z: 'Ширина вставки', v_pcs: 'профилей',
+    vt_akzent: 'Часть стороны', vt_front: 'Одна сторона', vt_ecke: 'Через угол', vt_gegen: 'Две стороны', vt_u: 'Три стороны (П)', vt_rund: 'По кругу',
+    vl_b: 'На всю высоту (до кроны)', vl_a: 'До уровня ламелей', vled_none: 'Без', vled_white: 'Белый (3000/4000K)', vled_rgb: 'RGB (цвет)', vled_rgbw: 'RGBW',
+    vc_std: 'Стандарт (кремовый / антрацит)', vc_nonstd: 'Другой RAL', vc_excl: 'Эксклюзив: структура / металлик', vc_holz: 'Под дерево',
+    v_disc: 'Ориентировочная цена за вертикальные профили с доставкой, без монтажа и без подготовки каркаса перголы. Стандартные цвета (кремовый, антрацит) в цене. Итог — после замера и планирования перголы.' }
+};
+if (!T[LANG]) LANG = 'de';
+var TIER_T = {"en": {"aufsatz": ["With new windows", "Box sits on top of the window"], "vorbau": ["Retrofit", "Box mounted outside on the facade"], "up": ["Invisible", "Box disappears into the wall"], "zip": ["Windows and doors", "Radio motor · fabric guided in a zip"], "e": ["Standard", "up to 4 m wide · motor"], "i": ["Comfort", "up to 5.5 m wide · motor · quiet running"], "is": ["Automatic", "moves with sun and wind"], "persiane": ["Aluminium", "powder-coated · 10-year colour guarantee"]}, "ru": {"aufsatz": ["При замене окон", "Короб стоит на окне"], "vorbau": ["Для дооснащения", "Короб снаружи на фасаде"], "up": ["Незаметно", "Короб скрыт в стене"], "zip": ["Окна и двери", "Радиомотор · ткань в молниевых направляющих"], "e": ["Стандарт", "до 4 м шириной · мотор"], "i": ["Комфорт", "до 5,5 м шириной · мотор · тихий ход"], "is": ["Автоматика", "сам реагирует на солнце и ветер"], "persiane": ["Алюминий", "порошковая окраска · 10 лет гарантии на цвет"]}};
+var NAME_T = {"en": {"aufsatz": "Top-mounted roller shutter", "vorbau": "Front-mounted roller shutter SK45", "up": "Concealed roller shutter"}, "ru": {"aufsatz": "Надоконные рольставни", "vorbau": "Накладные рольставни SK45", "up": "Встроенные рольставни"}};
+function tn(tr) { return (NAME_T[LANG] && NAME_T[LANG][tr.id]) || tr.name; }
+function tl(tr, f) { var x = TIER_T[LANG] && TIER_T[LANG][tr.id]; return x ? x[f === 'lvl' ? 0 : 1] : tr[f]; }
+
+document.documentElement.lang = LANG;
+function t(k, v) { var s = T[LANG][k] != null ? T[LANG][k] : (T.de[k] != null ? T.de[k] : k); if (v) Object.keys(v).forEach(function (x) { s = s.split('{' + x + '}').join(v[x]); }); return s; }
+var $ = function (q) { return document.querySelector(q); };
+var NF = new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+function fmt(n) { return NF.format(Math.round(n / 10) * 10); }
+function mm(cm) { return (cm / 100).toLocaleString(LANG === 'en' ? 'en-GB' : 'de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0m'; }
+
+/* ============ ZUSTAND ============ */
+var S = { prod: 'roll', w: 120, h: 150, sit: 'old', drive: 'gurt', armor: 'alu', colour: 'std', insect: 'none', fabric: 'soltis', zdrive: 'funk', sensor: 'none', slat: 'c80', box: 'auf', open: 'dreh', louv: 'fest',
+  vd: 400, vzier: 120, vtyp: 'front', vlevel: 'b', vled: 'none', vcol: 'std' };
+var VDEF = { verto: { w: 400, h: 250 } };
+var SPEC = [], EDIT = null;
+
+/* ============ PREIS ============ */
+function sizeF() { var p = P[S.prod], a = S.w * S.h / 1e4; return (1 - p.k) + p.k * a / REF; }
+function price(tr) {
+  if (S.prod === 'verto') return vCalc().price;
+  var f = sizeF(), c = F.colour[S.colour];
+  if (S.prod === 'roll') return tr.base * f * F.armor[S.armor] * c + F.drive[S.drive] + (S.insect === 'yes' ? F.insect : 0);
+  if (S.prod === 'zip') return tr.base * f * F.fabric[S.fabric] * c + F.zipDrive[S.zdrive] + (S.sensor === 'yes' ? F.sensor : 0);
+  if (S.prod === 'raff') return tr.base * f * F.slat[S.slat] * F.box[S.box] * c;
+  return tr.base * f * F.open[S.open] * F.louv[S.louv] * c;
+}
+function recId() {
+  if (S.prod === 'roll') return S.sit === 'new' ? 'aufsatz' : S.sit === 'bau' ? 'up' : 'vorbau';
+  if (S.prod === 'raff') return 'i';
+  return P[S.prod].tiers[0].id;
+}
+/* Typologie-Piktogramm: Pergola-Grundriss von oben, zugeklebte Seiten als dicke Balken */
+function vPict(ty) {
+  var w = 72, h = 56, m = 9, x0 = m, y0 = m, x1 = w - m, y1 = h - m, b = 4, o = [];
+  o.push('<rect x="' + x0 + '" y="' + y0 + '" width="' + (x1 - x0) + '" height="' + (y1 - y0) + '" fill="none" stroke="#9aa3aa" stroke-width="1" stroke-dasharray="3 2"/>');
+  var bar = function (x, y, ww, hh) { o.push('<rect x="' + x + '" y="' + y + '" width="' + ww + '" height="' + hh + '" rx="1" fill="#2c6a86"/>'); };
+  var front = function () { bar(x0, y1 - b, x1 - x0, b); }, back = function () { bar(x0, y0, x1 - x0, b); },
+      right = function () { bar(x1 - b, y0, b, y1 - y0); }, left = function () { bar(x0, y0, b, y1 - y0); };
+  if (ty === 'akzent') bar(x0 + (x1 - x0) * 0.28, y1 - b, (x1 - x0) * 0.44, b);
+  else if (ty === 'front') front();
+  else if (ty === 'ecke') { front(); right(); }
+  else if (ty === 'gegen') { front(); back(); }
+  else if (ty === 'u') { front(); left(); right(); }
+  else if (ty === 'rund') { front(); back(); left(); right(); }
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' + o.join('') + '</svg>';
+}
+
+/* ============ BILDER ============ */
+var DEFS = '<defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef4f7"/><stop offset=".55" stop-color="#cfdce3"/><stop offset="1" stop-color="#b4c6d0"/></linearGradient>' +
+  '<linearGradient id="pf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5257"/><stop offset="1" stop-color="#30363a"/></linearGradient>' +
+  '<linearGradient id="sl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa2a7"/><stop offset="1" stop-color="#5d6569"/></linearGradient>' +
+  '<linearGradient id="rp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3d7d9"/><stop offset="1" stop-color="#9aa1a5"/></linearGradient>' +
+  '<pattern id="zp" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#3a4043"/><rect width="2" height="2" fill="#4a5154"/><rect x="2" y="2" width="2" height="2" fill="#4a5154"/></pattern></defs>';
+function pane(x, y, w, h) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="url(#pg)"/><polygon points="' + (x + w * .2) + ',' + y + ' ' + (x + w * .42) + ',' + y + ' ' + (x + w * .1) + ',' + (y + h) + ' ' + x + ',' + (y + h) + ' ' + x + ',' + (y + h * .7) + '" fill="#fff" opacity=".35"/>'; }
+/* Fenster mit Behang; x,y,w,h = Fensteröffnung, c = Anteil geschlossen */
+function scene(kind, x, y, w, h, c, big) {
+  var s = '<rect x="' + (x - 4) + '" y="' + (y - 4) + '" width="' + (w + 8) + '" height="' + (h + 8) + '" fill="url(#pf)"/>' + pane(x + 3, y + 3, w - 6, h - 6), d = h * c, i, n;
+  if (kind === 'roll') {
+    s += '<rect x="' + (x - 6) + '" y="' + (y - 4 - h * .14) + '" width="' + (w + 12) + '" height="' + (h * .14) + '" fill="#4a5257"/>';
+    n = Math.round(d / (big ? 6 : 4.5)); for (i = 0; i < n; i++) s += '<rect x="' + x + '" y="' + (y + i * d / n) + '" width="' + w + '" height="' + (d / n - (big ? 1 : .8)) + '" fill="url(#rp)"/>';
+    s += '<rect x="' + (x - 3) + '" y="' + y + '" width="3" height="' + h + '" fill="#8f979b"/><rect x="' + (x + w) + '" y="' + y + '" width="3" height="' + h + '" fill="#8f979b"/>';
+  } else if (kind === 'zip') {
+    s += '<rect x="' + (x - 6) + '" y="' + (y - 4 - h * .12) + '" width="' + (w + 12) + '" height="' + (h * .12) + '" rx="2" fill="#3b4246"/>';
+    s += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + d + '" fill="url(#zp)" opacity=".86"/><rect x="' + x + '" y="' + (y + d - 3) + '" width="' + w + '" height="4" fill="#262b2e"/>';
+    s += '<rect x="' + (x - 4) + '" y="' + y + '" width="4" height="' + h + '" fill="#2b3033"/><rect x="' + (x + w) + '" y="' + y + '" width="4" height="' + h + '" fill="#2b3033"/>';
+  } else if (kind === 'raff') {
+    s += '<rect x="' + (x - 6) + '" y="' + (y - 4 - h * .1) + '" width="' + (w + 12) + '" height="' + (h * .1) + '" fill="#3b4246"/>';
+    n = Math.round(d / (big ? 9 : 6)); for (i = 0; i < n; i++) s += '<rect x="' + x + '" y="' + (y + i * d / n) + '" width="' + w + '" height="' + (d / n * .55) + '" fill="url(#sl)"/>';
+    s += '<rect x="' + x + '" y="' + (y + d - 3) + '" width="' + w + '" height="3" fill="#2b3033"/>';
+  } else {
+    var lw = w / 2 * (big ? Math.min(1, c / .7) : 1), lou = function (lx, lwid) { var g = '<rect x="' + lx + '" y="' + y + '" width="' + lwid + '" height="' + h + '" fill="#3b4246"/>', k, m = Math.round(h / (big ? 8 : 5.5));
+      for (k = 0; k < m; k++) g += '<rect x="' + (lx + 3) + '" y="' + (y + 3 + k * (h - 6) / m) + '" width="' + (lwid - 6) + '" height="' + ((h - 6) / m * .55) + '" fill="url(#sl)"/>'; return g; };
+    s += lou(x, lw) + lou(x + w - lw, lw);
+  }
+  return s;
+}
+var PROD_ART = {}; ['roll', 'zip', 'raff', 'laden'].forEach(function (k) { PROD_ART[k] = '<svg viewBox="0 0 160 120" aria-hidden="true">' + DEFS + scene(k, 52, 26, 56, 78, k === 'laden' ? 1 : .62, false) + '</svg>'; });
+(function () { /* WIN VERTO: Pergola mit vertikalen Profilen */
+  var s = DEFS + '<rect x="30" y="20" width="100" height="10" rx="2" fill="url(#pf)"/>' +
+    '<rect x="30" y="20" width="8" height="78" fill="url(#pf)"/><rect x="122" y="20" width="8" height="78" fill="url(#pf)"/>';
+  for (var i = 0; i < 9; i++) s += '<rect x="' + (44 + i * 8.3) + '" y="30" width="3.4" height="62" rx="1" fill="url(#sl)"/>';
+  PROD_ART.verto = '<svg viewBox="0 0 160 120" aria-hidden="true">' + s + '</svg>';
+})();
+
+/* ============ UI ============ */
+function seg(host, items, cur, on) {
+  host.innerHTML = '';
+  items.forEach(function (it) { var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(it.id) === String(cur)); b.innerHTML = it.label; b.addEventListener('click', function () { on(it.id); }); host.appendChild(b); });
+}
+function opts(keys, pre) { return keys.map(function (k) { return { id: k, label: t(pre + k) }; }); }
+function prodCards() {
+  var host = $('#seg-prod'); host.innerHTML = '';
+  Object.keys(P).forEach(function (k) {
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(k === S.prod));
+    b.innerHTML = '<span class="im">' + PROD_ART[k] + '</span><span class="tx"><b>' + t('p_' + k) + '</b><small>' + t('pd_' + k) + '</small></span>';
+    b.addEventListener('click', function () { if (S.prod === k) return; S.prod = k; EDIT = null; if (VDEF[k]) { S.w = VDEF[k].w; S.h = VDEF[k].h; } clamp(); renderAll(); });
+    host.appendChild(b);
+  });
+}
+function clamp() { var l = P[S.prod].lim; S.w = Math.min(l.w[1], Math.max(l.w[0], S.w)); S.h = Math.min(l.h[1], Math.max(l.h[0], S.h)); }
+function slider(label, key) {
+  var l = P[S.prod].lim[key];
+  return '<div class="dim"><label><span>' + label + '</span><span class="num"><input type="number" data-in="' + key + '" value="' + S[key] + '" step="1" inputmode="numeric"> cm</span></label>' +
+    '<input type="range" data-rg="' + key + '" min="' + l[0] + '" max="' + l[1] + '" step="5" value="' + S[key] + '"><small><span>' + l[0] + ' cm</span><span>' + l[1] + ' cm</span></small></div>';
+}
+function steps() {
+  var h = '', n = 2, p = S.prod;
+  function st(title, key) { return '<div class="step"><i>' + (n++) + '</i><div><h2>' + title + '</h2>' + (key ? '<div class="seg" data-seg="' + key + '"></div>' : '') + '</div></div>'; }
+  if (p === 'verto') {
+    h += '<div class="step"><i>' + (n++) + '</i><div><h2>' + t('v_typ') + '</h2><div class="types" id="vtypes"></div></div></div>';
+    h += '<div class="step"><i>' + (n++) + '</i><div><h2>' + t('v_level') + '</h2><div class="seg" data-seg="vlevel"></div></div></div>';
+    h += '<div class="step"><i>' + (n++) + '</i><div><h2>' + t('v_perg') + '</h2><div class="dims">' + slider(t('v_b'), 'w') + slider(t('v_t'), 'vd') + slider(t('v_h'), 'h') + (S.vtyp === 'akzent' ? slider(t('v_z'), 'vzier') : '') + '</div></div></div>';
+    h += '<div class="step"><i>' + (n++) + '</i><div><h2>' + t('v_led') + '</h2><div class="seg" data-seg="vled"></div></div></div>';
+    h += '<div class="step"><i>' + (n++) + '</i><div><h2>' + t('s_colour') + '</h2><div class="seg" data-seg="vcol"></div></div></div>';
+  } else
+  h += '<div class="step"><i>' + (n++) + '</i><div><h2>' + t('s_size') + '</h2><div class="dims">' + slider(t('width'), 'w') + slider(t('height'), 'h') + '</div></div></div>';
+  if (p === 'roll') h += st(t('s_sit'), 'sit') + st(t('s_drive'), 'drive') + st(t('s_armor'), 'armor') + st(t('s_colour'), 'colour') + st(t('s_extra'), 'insect');
+  if (p === 'zip') h += st(t('s_fabric'), 'fabric') + st(t('s_drive'), 'zdrive') + st(t('s_sensor'), 'sensor') + st(t('s_colour'), 'colour');
+  if (p === 'raff') h += st(t('s_slat'), 'slat') + st(t('s_box'), 'box') + st(t('s_colour'), 'colour');
+  if (p === 'laden') h += st(t('s_open'), 'open') + st(t('s_louv'), 'louv') + st(t('s_colour'), 'colour');
+  $('#steps').innerHTML = h;
+  var SEGS = {
+    sit: [{ id: 'new', label: t('sit_new') }, { id: 'old', label: t('sit_old') }, { id: 'bau', label: t('sit_bau') }],
+    drive: opts(['gurt', 'kurbel', 'motor', 'solar'], 'd_'), armor: opts(['alu', 'rc2'], 'a_'), colour: opts(['std', 'ral', 'holz'], 'c_'),
+    insect: [{ id: 'none', label: t('x_none') }, { id: 'yes', label: t('x_insect') }],
+    fabric: opts(['soltis', 'dark', 'view'], 'f_'), zdrive: opts(['funk', 'solar'], 'zd_'), sensor: [{ id: 'none', label: t('sn_none') }, { id: 'yes', label: t('sn_yes') }],
+    slat: opts(['c80', 'z90'], 'sl_'), box: opts(['auf', 'unter'], 'b_'), open: opts(['dreh', 'schiebe'], 'o_'), louv: opts(['fest', 'beweglich'], 'l_'),
+    vlevel: opts(['b', 'a'], 'vl_'), vled: opts(['none', 'white', 'rgb', 'rgbw'], 'vled_'), vcol: opts(['std', 'nonstd', 'excl', 'holz'], 'vc_')
+  };
+  if (p === 'verto') {
+    var vh = $('#vtypes');
+    VERTO.types.forEach(function (ty) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'type'; b.setAttribute('aria-pressed', String(ty.id === S.vtyp));
+      b.innerHTML = vPict(ty.id) + '<span>' + t('vt_' + ty.id) + '</span>';
+      b.addEventListener('click', function () { if (S.vtyp === ty.id) return; S.vtyp = ty.id; steps(); update(); });
+      vh.appendChild(b);
+    });
+  }
+  document.querySelectorAll('[data-seg]').forEach(function (host) {
+    var k = host.dataset.seg;
+    seg(host, SEGS[k], S[k], function (id) { S[k] = id; host.querySelectorAll('button').forEach(function (b, i) { b.setAttribute('aria-pressed', String(SEGS[k][i].id) === String(S[k])); }); update(); });
+  });
+  document.querySelectorAll('[data-rg]').forEach(function (r) {
+    var k = r.dataset.rg, inp = document.querySelector('[data-in="' + k + '"]'), l = P[S.prod].lim[k];
+    r.addEventListener('input', function () { S[k] = +this.value; inp.value = S[k]; update(); });
+    inp.addEventListener('input', function () { var v = Math.round(+this.value); if (!v) return; S[k] = Math.min(l[1], Math.max(l[0], v)); r.value = S[k]; update(); });
+    inp.addEventListener('blur', function () { this.value = S[k]; });
+  });
+}
+function renderAll() { document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t); }); prodCards(); steps(); update(); }
+function update() {
+  var p = P[S.prod], rec = recId(), res = $('#res');
+  $('#res-title').textContent = S.prod === 'verto' ? t('v_res') : t('res');
+  res.innerHTML = ''; res.style.gridTemplateColumns = p.tiers.length > 1 ? '' : 'minmax(0, 360px)';
+  p.tiers.forEach(function (tr) {
+    var off = tr.maxW && S.w > tr.maxW, pr = price(tr), d = document.createElement('div'), isRec = tr.id === rec && p.tiers.length > 1;
+    d.className = 'tier' + (isRec ? ' rec' : '') + (off ? ' off' : '');
+    d.innerHTML = '<span class="lvl">' + tl(tr, 'lvl') + (isRec ? ' · ' + t('rec') : '') + '</span><span class="name">' + tn(tr) + '</span><span class="sys">' + tl(tr, 'sys') + '</span><span class="price">' + (off ? '–' : fmt(pr)) + '</span>' +
+      (off ? '<span class="sys">' + t('too_wide') + '</span>' : '<button type="button">' + t('choose') + '</button>');
+    if (!off) d.querySelector('button').addEventListener('click', function () { choose(tr, pr); });
+    res.appendChild(d);
+  });
+  $('#disc').textContent = S.prod === 'verto' ? t('v_disc') : t('disc');
+  $('#f-dim').textContent = mm(S.w) + ' × ' + mm(S.h);
+  $('#f-sel').textContent = selText();
+  var fl = document.querySelector('[data-t="f_dim"]'); if (fl) fl.textContent = S.prod === 'verto' ? t('v_perg') : t('f_dim');
+  draw(); fit();
+}
+function selText() {
+  var a = [t('p_' + S.prod)], p = S.prod;
+  if (p === 'roll') a.push(t('d_' + S.drive), t('a_' + S.armor), t('c_' + S.colour), S.insect === 'yes' ? t('x_insect') : '');
+  if (p === 'zip') a.push(t('f_' + S.fabric), t('zd_' + S.zdrive), S.sensor === 'yes' ? t('sn_yes') : '', t('c_' + S.colour));
+  if (p === 'raff') a.push(t('sl_' + S.slat), t('b_' + S.box), t('c_' + S.colour));
+  if (p === 'laden') a.push(t('o_' + S.open), t('l_' + S.louv), t('c_' + S.colour));
+  if (p === 'verto') { var v = vCalc(); a.push(t('vt_' + S.vtyp), t('vl_' + S.vlevel), v.total + ' ' + t('v_pcs') + ' · ' + (v.tier / 10) + ' cm', t('vc_' + S.vcol), S.vled !== 'none' ? t('vled_' + S.vled) : ''); }
+  return a.filter(Boolean).join(' · ');
+}
+function draw() {
+  if (S.prod === 'verto') return drawVerto();
+  var W = 300, H = 300, sc = Math.min(200 / S.w, 200 / S.h), w = S.w * sc, h = S.h * sc, x = (W - w) / 2, y = (H - h) / 2 + 12;
+  $('#draw').innerHTML = DEFS + '<rect x="0" y="0" width="300" height="300" fill="#e7eaec"/>' + scene(S.prod, x, y, w, h, .7, true) +
+    '<text x="150" y="' + Math.min(292, y + h + 22) + '" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="#1c2226">' + mm(S.w) + ' × ' + mm(S.h) + '</text>';
+}
+/* WIN VERTO: Frontansicht des vorderen Laufs mit vertikalen Profilen */
+function drawVerto() {
+  var W = 300, H = 300, pad = 34, v = vCalc(), span = S.w, ht = S.h * (S.vlevel === 'a' ? 0.92 : 1);
+  var sc = Math.min((W - 2 * pad) / span, (H - 2 * pad - 20) / ht), w = span * sc, h = ht * sc, x = (W - w) / 2, y = H - pad - h;
+  var post = Math.max(6, 10 * sc), beam = Math.max(6, 9 * sc), o = DEFS + '<rect x="0" y="0" width="300" height="300" fill="#e7eaec"/>';
+  o += '<rect x="' + x + '" y="' + (y - beam) + '" width="' + w + '" height="' + beam + '" rx="2" fill="url(#pf)"/>';
+  o += '<rect x="' + x + '" y="' + y + '" width="' + post + '" height="' + h + '" fill="url(#pf)"/><rect x="' + (x + w - post) + '" y="' + y + '" width="' + post + '" height="' + h + '" fill="url(#pf)"/>';
+  var N = v.N[0], gap = (w - 2 * post) / N, sw = Math.max(2.5, gap * 0.42), x0 = x + post + (gap - sw) / 2;
+  for (var i = 0; i < N; i++) o += '<rect x="' + (x0 + i * gap) + '" y="' + (y + 2) + '" width="' + sw + '" height="' + (h - 4) + '" rx="1" fill="url(#sl)"/>';
+  o += '<text x="150" y="' + (H - 10) + '" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="#1c2226">' + mm(S.w) + ' × ' + mm(S.h) + '</text>';
+  $('#draw').innerHTML = o;
+}
+
+/* ============ SPEZIFIKATION ============ */
+function choose(tr, pr) {
+  var it = { st: JSON.parse(JSON.stringify(S)), label: tn(tr), detail: selText() + ' · ' + mm(S.w) + ' × ' + mm(S.h), price: pr, qty: 1, prod: S.prod };
+  if (EDIT !== null) { it.qty = SPEC[EDIT].qty; SPEC[EDIT] = it; EDIT = null; } else SPEC.push(it);
+  renderSpec();
+}
+function renderSpec() {
+  var host = $('#spec');
+  if (!SPEC.length) { host.innerHTML = '<p class="empty">' + t('empty') + '</p>'; $('#send').disabled = true; fit(); return; }
+  var sum = 0, rows = SPEC.map(function (it, i) { sum += it.qty * it.price;
+    return '<tr' + (EDIT === i ? ' style="background:var(--accent-soft)"' : '') + '><td><b>' + (i + 1) + '. ' + it.label + '</b><div class="d">' + it.detail + '</div><div class="act"><button type="button" data-edit="' + i + '">' + t('edit') + '</button><button type="button" data-del="' + i + '">' + t('del') + '</button></div></td>' +
+      '<td class="n"><input class="q" type="number" min="1" max="99" value="' + it.qty + '" data-qty="' + i + '"></td><td class="n">' + fmt(it.price) + '</td><td class="n"><b>' + fmt(it.qty * it.price) + '</b></td></tr>'; });
+  host.innerHTML = '<table><thead><tr><th>' + t('th_pos') + '</th><th style="text-align:center">' + t('th_qty') + '</th><th style="text-align:right">' + t('th_price') + '</th><th style="text-align:right">' + t('th_sum') + '</th></tr></thead><tbody>' + rows.join('') + '</tbody>' +
+    '<tfoot><tr><td colspan="3" style="text-align:right;color:var(--muted)">' + t('total') + '</td><td class="n"><b>' + fmt(sum) + '</b></td></tr></tfoot></table>';
+  $('#send').disabled = false;
+  host.querySelectorAll('[data-qty]').forEach(function (inp) { inp.addEventListener('change', function () { SPEC[this.dataset.qty].qty = Math.min(99, Math.max(1, parseInt(this.value) || 1)); renderSpec(); }); });
+  host.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { SPEC.splice(+this.dataset.del, 1); EDIT = null; renderSpec(); }); });
+  host.querySelectorAll('[data-edit]').forEach(function (b) { b.addEventListener('click', function () { var it = SPEC[+this.dataset.edit]; EDIT = +this.dataset.edit; S = JSON.parse(JSON.stringify(it.st)); renderAll(); renderSpec(); window.scrollTo({ top: 0, behavior: 'smooth' }); if (window.parent !== window) window.parent.postMessage({ type: 'db-scroll-top' }, '*'); }); });
+  fit();
+}
+$('#send').addEventListener('click', function () {
+  if (!SPEC.length) return;
+  var sum = 0, lines = SPEC.map(function (it, i) { sum += it.qty * it.price; return (i + 1) + '. ' + it.qty + ' × ' + it.label + ' – ' + it.detail + ' – ' + fmt(it.qty * it.price); });
+  var note = t('msg_head') + '\n' + lines.join('\n') + '\n' + t('msg_total', { sum: fmt(sum) });
+  if (window.parent !== window) window.parent.postMessage({ type: 'db-anfrage', what: 'Sonnenschutz', note: note }, '*');
+  else location.href = 'index.html#kontakt';
+});
+var lastH = 0;
+function fit() { if (window.parent === window) return; requestAnimationFrame(function () { var h = document.documentElement.scrollHeight; if (h !== lastH) { lastH = h; window.parent.postMessage({ type: 'db-height', h: h }, '*'); } }); }
+window.addEventListener('resize', fit);
+renderAll(); renderSpec();
+
+/* ===== Projektliste: Positionen gehen an die Website, damit die Liste beim Wechsel zwischen den Rechnern erhalten bleibt ===== */
+(function () {
+  if (window.parent === window) return;
+  var CALC = 'sonnen', ready = false, M = {"_": "Sonnenschutz"};
+  function sync() {
+    if (!ready) return;
+    var sum = 0, lines = SPEC.map(function (it) { sum += it.qty * it.price; return it.qty + ' × ' + it.label + ' – ' + it.detail + ' – ' + fmt(it.qty * it.price); });
+    var what = SPEC.map(function (it) { return M[it.prod] || M._; }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
+    window.parent.postMessage({ type: 'db-spec', calc: CALC, items: JSON.parse(JSON.stringify(SPEC)), sum: sum, lines: lines, what: what }, '*');
+  }
+  var base = renderSpec;
+  renderSpec = function () { base.apply(this, arguments); sync(); };
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || d.type !== 'db-spec-restore' || d.calc !== CALC) return;
+    ready = true;
+    if (Array.isArray(d.items)) { SPEC = d.items; EDIT = null; renderSpec(); }
+  });
+  window.parent.postMessage({ type: 'db-ready', calc: CALC }, '*');
+})();
+
+var UXT = {"de": {"more": "Weitere Optionen", "less": "Weniger Optionen", "unknown": "Maße unbekannt? Foto per WhatsApp schicken", "wa_text": "Hallo D&B, ich kenne meine Maße nicht. Ich schicke Ihnen Fotos.", "trust": "<b>★ 5,0</b> bei Google · Aufmaß kostenlos · Fixpreis vor Auftrag", "p_klein": "Klein", "p_std": "Standardfenster", "p_gross": "Großes Fenster", "p_btuer": "Balkontür", "p_ttuer": "Terrassentür", "p_st": "Standard", "p_breit": "Breit", "p_3": "Mittel", "p_4": "Groß", "p_5": "Sehr groß", "p_balk": "Balkon", "p_terr": "Terrasse", "p_lang": "Lang"}, "en": {"more": "More options", "less": "Fewer options", "unknown": "Sizes unknown? Send a photo via WhatsApp", "wa_text": "Hello D&B, I do not know my sizes. I will send you photos.", "trust": "<b>★ 5.0</b> on Google · free measurement · fixed price before you order", "p_klein": "Small", "p_std": "Standard window", "p_gross": "Large window", "p_btuer": "Balcony door", "p_ttuer": "Patio door", "p_st": "Standard", "p_breit": "Wide", "p_3": "Medium", "p_4": "Large", "p_5": "Very large", "p_balk": "Balcony", "p_terr": "Terrace", "p_lang": "Long"}, "ru": {"more": "Дополнительные параметры", "less": "Скрыть параметры", "unknown": "Не знаете размеры? Пришлите фото в WhatsApp", "wa_text": "Здравствуйте, D&B! Я не знаю размеров, пришлю фото.", "trust": "<b>★ 5,0</b> в Google · замер бесплатно · фиксированная цена до заказа", "p_klein": "Маленькое", "p_std": "Обычное окно", "p_gross": "Большое окно", "p_btuer": "Балконная дверь", "p_ttuer": "Дверь на террасу", "p_st": "Стандарт", "p_breit": "Широкая", "p_3": "Средняя", "p_4": "Большая", "p_5": "Очень большая", "p_balk": "Балкон", "p_terr": "Терраса", "p_lang": "Длинное"}};
+window.UXCFG = {
+  calc: 'sonnen', unit: 'cm',
+  sizeHost: function () { return document.querySelector('#steps .dims'); },
+  presets: function () { return S.prod === 'verto' ? [] : [{ k: 'p_std', v: [120, 150] }, { k: 'p_gross', v: [180, 150] }, { k: 'p_btuer', v: [90, 220] }, { k: 'p_ttuer', v: [200, 220] }]; },
+  cur: function () { return [S.w, S.h]; },
+  set: function (v) { S.w = v[0]; S.h = v[1]; clamp(); renderAll(); },
+  adv: function () { var keys = { roll: ['armor', 'colour', 'insect'], zip: ['sensor', 'colour'], raff: ['box', 'colour'], laden: ['louv', 'colour'] }[S.prod] || [];
+    return keys.map(function (k) { var h = document.querySelector('[data-seg="' + k + '"]'); return h && h.closest('.step'); }); }
+};
+/* ===== Bedienkomfort: Maß-Vorschläge, weitere Optionen eingeklappt, Vertrauenszeile, Live-Preis an die Website ===== */
+(function () {
+  var C = window.UXCFG; if (!C) return;
+  var L = (typeof LANG !== 'undefined' && UXT[LANG]) ? LANG : 'de', U = UXT[L], open = false, lastLive = '';
+  function el(h) { var d = document.createElement('div'); d.innerHTML = h; return d.firstChild; }
+  function decorate() {
+    /* 1) Maß-Vorschläge + „Maße unbekannt?“ */
+    var host = C.sizeHost(), list = C.presets();
+    var old = document.getElementById('ux-pre'); if (old) old.remove();
+    if (host && list && list.length) {
+      var cur = C.cur(), box = el('<div class="ux-pre" id="ux-pre"></div>');
+      list.forEach(function (p) {
+        var b = document.createElement('button'); b.type = 'button';
+        var on = p.v.every(function (v, i) { return Math.round(cur[i]) === v; });
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.innerHTML = '<b>' + (U[p.k] || p.k) + '</b><small>' + p.v.map(function (v) { return C.fmtDim ? C.fmtDim(v) : v; }).join(' × ') + (C.unit ? ' ' + (L === 'ru' ? ({ cm: 'см', m: 'м' })[C.unit] : C.unit) : '') + '</small>';
+        b.dataset.v = p.v.join(',');
+        b.addEventListener('click', function () { C.set(p.v); });
+        box.appendChild(b);
+      });
+      var wa = 'https://wa.me/436767202149?text=' + encodeURIComponent(U.wa_text);
+      box.appendChild(el('<a class="ux-unk" href="' + wa + '" target="_blank" rel="noopener">' + U.unknown + '</a>'));
+      host.parentNode.insertBefore(box, host);
+    }
+    /* 2) Weitere Optionen einklappen */
+    var adv = C.adv().filter(Boolean), tg = document.getElementById('ux-adv'); if (tg) tg.remove();
+    if (adv.length) {
+      var sum = adv.map(function (s) { var p = s.querySelector('[aria-pressed="true"]'); return p ? p.textContent.trim() : ''; }).filter(Boolean).join(' · ');
+      tg = el('<button type="button" class="ux-adv" id="ux-adv" aria-expanded="' + open + '"><span><b>' + (open ? U.less : U.more) + '</b>' + (open ? '' : '<small>' + sum + '</small>') + '</span><i aria-hidden="true">' + (open ? '−' : '+') + '</i></button>');
+      tg.addEventListener('click', function () { open = !open; decorate(); fit && fit(); });
+      adv[0].parentNode.insertBefore(tg, adv[0]);
+      adv.forEach(function (s) { s.classList.toggle('ux-hide', !open); });
+    }
+    /* 3) Vertrauenszeile unter dem Preis */
+    var disc = document.getElementById('disc');
+    if (disc && !document.getElementById('ux-trust')) disc.parentNode.insertBefore(el('<p class="ux-trust" id="ux-trust">' + U.trust + '</p>'), disc);
+    live();
+  }
+  function markPresets() {
+    var cur = C.cur();
+    [].forEach.call(document.querySelectorAll('#ux-pre button'), function (b) {
+      var v = b.dataset.v.split(',').map(Number);
+      b.setAttribute('aria-pressed', v.every(function (x, i) { return Math.round(cur[i]) === x; }) ? 'true' : 'false');
+    });
+  }
+  /* Live-Preis für die Leiste auf der Website */
+  function recCard() {
+    var r = document.querySelector('#res .tier.rec');
+    if (r) return r;
+    var all = [].slice.call(document.querySelectorAll('#res .tier')).filter(function (x) { var b = x.querySelector('button'); return b && !b.disabled; });
+    return all[0] || null;
+  }
+  function live() {
+    markPresets();
+    if (window.parent === window) return;
+    requestAnimationFrame(function () {
+      var r = recCard(), st = document.getElementById('res'); st = st && (st.closest('.step') || st);
+      var pr = r && r.querySelector('.price'), price = pr ? (pr.childNodes[0].textContent || '').trim() : '';
+      var box = st ? st.getBoundingClientRect() : { top: 0, bottom: 0 };
+      var msg = { type: 'db-live', calc: C.calc, ok: !!(r && price), name: r ? r.querySelector('.name').textContent : '', price: price, resTop: box.top + window.scrollY, resBottom: box.bottom + window.scrollY };
+      var key = JSON.stringify(msg); if (key === lastLive) return; lastLive = key;
+      window.parent.postMessage(msg, '*');
+    });
+  }
+  var res = document.getElementById('res'); if (res) new MutationObserver(live).observe(res, { childList: true, subtree: true, characterData: true });
+  window.addEventListener('resize', live);
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || d.type !== 'db-cmd' || d.calc !== C.calc) return;
+    if (d.cmd === 'add') { var r = recCard(), b = r && r.querySelector('button'); if (b && !b.disabled) b.click(); }
+  });
+  var base = renderAll; renderAll = function () { base.apply(this, arguments); decorate(); };
+  decorate();
+})();
+</script>
+</body>
+</html>

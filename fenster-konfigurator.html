@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Preisrechner D&amp;B</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+:root { --bg:#eef0f1; --panel:#fff; --ink:#1c2226; --muted:#5b666e; --line:#d6dadd; --accent:#2c6a86; --accent-soft:#e1edf2; --gelb:#f5c518; --gelb-ink:#1c1c1c;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; color-scheme:light; }
+* { box-sizing:border-box; } html,body { margin:0; } [hidden] { display:none !important; }
+body { background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.45; }
+.app { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:14px; padding:16px; }
+@media (max-width:860px) { .app { grid-template-columns:1fr; padding:10px; } .pic { display:none !important; } }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:18px; min-width:0; }
+h1 { font-family:var(--f-display); font-size:20px; margin:0 0 2px; letter-spacing:-.01em; }
+.sub { color:var(--muted); font-size:13px; margin:0 0 6px; }
+.step { display:grid; grid-template-columns:34px 1fr; gap:12px; padding:14px 0; border-top:1px solid var(--line); align-items:start; }
+.step:first-of-type { border-top:0; }
+.step i { width:30px; height:30px; border-radius:50%; background:var(--gelb); color:var(--gelb-ink); font:700 14px var(--f-body); font-style:normal; display:grid; place-items:center; }
+.step h2 { font-family:var(--f-display); font-size:15px; margin:4px 0 8px; }
+.seg { display:flex; gap:8px; flex-wrap:wrap; }
+.seg button { font:inherit; font-size:14px; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.seg button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); font-weight:600; }
+/* Produktwahl mit Bild */
+.prods { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.prods button { position:relative; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:0; cursor:pointer; overflow:hidden; text-align:left; display:grid; grid-template-rows:auto 1fr; transition:border-color .2s, box-shadow .2s, transform .2s; }
+.prods button:hover { border-color:#9fb0ba; transform:translateY(-2px); box-shadow:0 10px 22px -14px rgba(28,34,38,.45); }
+.prods .im { display:grid; place-items:center; aspect-ratio:4/3; background:radial-gradient(120% 90% at 50% 20%, #fbfcfc 0%, #e6eaec 70%, #dde2e5 100%); }
+.prods .im svg { width:86%; height:auto; display:block; }
+.prods .tx { padding:9px 12px 11px; display:grid; gap:1px; }
+.prods .tx b { font-family:var(--f-display); font-size:15px; letter-spacing:-.01em; }
+.prods .tx small { color:var(--muted); font-size:12px; line-height:1.3; }
+.prods button[aria-pressed="true"] { border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink); }
+.prods button[aria-pressed="true"]::after { content:"✓"; position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:50%; background:var(--gelb); color:var(--gelb-ink); font:700 13px/24px var(--f-body); text-align:center; }
+@media (max-width:520px) { .prods { gap:6px; } .prods .tx { padding:7px 8px 9px; } .prods .tx b { font-size:13.5px; } .prods .tx small { display:none; } }
+.seg button i.c { width:16px; height:16px; border-radius:50%; border:1px solid rgba(0,0,0,.15); display:inline-block; }
+.types { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
+.type { border:1px solid var(--line); border-radius:8px; background:transparent; padding:8px 6px 6px; cursor:pointer; display:grid; gap:4px; justify-items:center; font:500 12px var(--f-body); color:var(--ink); text-align:center; }
+.type[aria-pressed="true"] { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); background:var(--accent-soft); }
+.type svg { width:72px; height:56px; }
+.fields { margin-bottom:10px; }
+.dims { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.dim label { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--muted); margin-bottom:4px; }
+.dim label .num { display:inline-flex; align-items:center; gap:4px; font-family:var(--f-mono); color:var(--ink); }
+.dim label input { width:62px; font:500 15px var(--f-mono); color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:4px 6px; text-align:right; }
+.dim label input:focus-visible, .spec input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+input[type=range] { width:100%; accent-color:var(--accent); }
+.dim small { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; }
+.res { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px; }
+@media (max-width:620px) { .res { grid-template-columns:1fr; } }
+.tier { border:1px solid var(--line); border-radius:8px; padding:12px 14px; display:grid; gap:4px; background:var(--panel); align-content:start; }
+.tier.rec { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+.tier .lvl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); font-weight:700; }
+.tier .name { font-weight:600; }
+.tier .sys { color:var(--muted); font-size:12.5px; }
+.tier .price { font-family:var(--f-display); font-size:24px; letter-spacing:-.02em; margin-top:4px; }
+.tier .price small { font:400 12px var(--f-body); color:var(--muted); margin-left:4px; }
+.tier button { margin-top:8px; font:600 13px var(--f-body); border:0; border-radius:999px; padding:9px 12px; cursor:pointer; background:var(--ink); color:#fff; }
+.tier.rec button { background:var(--gelb); color:var(--gelb-ink); }
+.disc { font-size:12px; color:var(--muted); margin:12px 0 0; line-height:1.4; }
+.hint { background:#fbf0e2; color:#a3621b; border-radius:6px; padding:8px 10px; font-size:12.5px; margin-top:10px; }
+/* Spezifikation */
+.spec { margin-top:4px; }
+.spec table { width:100%; border-collapse:collapse; font-size:13.5px; }
+.spec th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; padding:6px 6px; border-bottom:1px solid var(--line); }
+.spec td { padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+.spec td.n { font-family:var(--f-mono); white-space:nowrap; text-align:right; }
+.spec td .d { color:var(--muted); font-size:12px; }
+.spec input.q { width:52px; font:500 14px var(--f-mono); text-align:center; border:1px solid var(--line); border-radius:4px; padding:4px; background:var(--bg); }
+.spec .act { white-space:nowrap; }
+.spec .act button { font:500 12px var(--f-body); border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:4px 10px; cursor:pointer; margin-left:4px; }
+.spec tfoot td { border:0; padding-top:12px; }
+.spec tfoot b { font-family:var(--f-display); font-size:22px; letter-spacing:-.02em; }
+.spec .empty { color:var(--muted); font-size:13px; }
+.btn { font:600 15px var(--f-body); border:0; border-radius:999px; padding:12px 20px; cursor:pointer; background:var(--gelb); color:var(--gelb-ink); display:inline-flex; align-items:center; gap:8px; }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.pic { display:grid; align-content:start; gap:10px; position:sticky; top:16px; }
+.view { background:linear-gradient(180deg,#f7f8f9,#e9ecee); border:1px solid var(--line); border-radius:6px; padding:16px; display:grid; place-items:center; min-height:300px; }
+.view svg { max-width:100%; height:auto; }
+.fact { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px 10px; }
+.fact span { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); display:block; }
+.fact b { font-family:var(--f-mono); font-weight:500; }
+/* ===== Mobil: volle Breite, Nummer neben der Überschrift, Produkte als Liste ===== */
+@media (max-width:560px) {
+  .app { padding:0; gap:0; }
+  .panel { border:0; border-radius:0; padding:18px 16px 22px; }
+  h1 { font-size:22px; }
+  .step { grid-template-columns:26px minmax(0,1fr); column-gap:10px; row-gap:12px; padding:18px 0; }
+  .step > div { display:contents; }
+  .step > div > * { grid-column:1 / -1; min-width:0; }
+  .step > div > h2 { grid-column:2; margin:0; align-self:center; font-size:16px; }
+  .step i { width:26px; height:26px; font-size:13px; }
+  .prods { grid-template-columns:minmax(0,1fr) !important; gap:8px; }
+  .prods button { grid-template-columns:96px minmax(0,1fr); grid-template-rows:none; align-items:stretch; border-radius:12px; }
+  .prods button:hover { transform:none; box-shadow:none; }
+  .prods .im { aspect-ratio:auto; min-height:76px; height:100%; }
+  .prods .im svg { width:92%; }
+  .prods .tx { padding:10px 40px 10px 14px; align-content:center; }
+  .prods .tx b { font-size:15.5px !important; }
+  .prods .tx small { display:block !important; font-size:12.5px; }
+  .prods button[aria-pressed="true"]::after { top:50%; margin-top:-12px; right:12px; }
+  .dims { grid-template-columns:minmax(0,1fr); gap:18px; }
+  .dim label { gap:10px; }
+  .dim label > span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .dim label input { width:72px; font-size:16px; }
+  .seg { gap:8px; }
+  .seg button { text-align:left; max-width:100%; padding:9px 14px; min-height:40px; }
+  .res { grid-template-columns:minmax(0,1fr) !important; }
+  .spec table, .spec thead, .spec tbody, .spec tfoot, .spec tr { display:block; }
+  .spec thead { display:none; }
+  .spec tbody tr { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:6px 10px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .spec tbody td { display:block; padding:0; border:0; }
+  .spec tbody td:first-child { grid-column:1 / -1; }
+  .spec tbody td:nth-child(3) { color:var(--muted); text-align:left; }
+  .spec .act button { margin:6px 6px 0 0; padding:6px 12px; font-size:12.5px; }
+  .spec tfoot { display:block; }
+  .spec tfoot tr { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-top:14px; }
+  .spec tfoot td { display:block; padding:0; text-align:left !important; }
+  .btn { width:100%; justify-content:center; }
+}
+.tier button[disabled] { display:none; }
+.tier .price small.no { display:block; font:600 14px var(--f-body); color:var(--muted); margin:2px 0 0; }
+.hint-sw { display:inline-block; margin-top:8px; font:600 14px var(--f-body); color:var(--ink); background:var(--gelb); border:0; border-radius:999px; padding:8px 14px; cursor:pointer; }
+/* ===== Bedienkomfort ===== */
+.ux-pre { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.ux-pre button { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:7px 12px; cursor:pointer; display:grid; gap:1px; text-align:left; line-height:1.2; }
+.ux-pre button b { font-size:13.5px; }
+.ux-pre button small { font-size:12px; color:var(--muted); font-family:var(--f-mono); }
+.ux-pre button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); }
+.ux-unk { align-self:center; font-size:13.5px; color:var(--accent); text-decoration:underline; text-underline-offset:3px; margin-left:4px; }
+.ux-adv { width:100%; display:flex; justify-content:space-between; align-items:center; gap:12px; font:inherit; color:var(--ink); background:var(--bg); border:1px dashed var(--line); border-radius:10px; padding:12px 14px; margin:6px 0; cursor:pointer; text-align:left; }
+.ux-adv span { display:grid; gap:2px; min-width:0; }
+.ux-adv b { font-size:14.5px; }
+.ux-adv small { font-size:12.5px; color:var(--muted); }
+.ux-adv i { font-style:normal; font-size:20px; line-height:1; color:var(--muted); }
+.ux-hide { display:none !important; }
+.ux-trust { margin:12px 0 0; font-size:13px; color:var(--ink); }
+
+@media (max-width:560px) { .ux-pre button { flex:1 1 calc(50% - 4px); } .ux-unk { flex-basis:100%; margin:2px 0 0; } }
+
+/* ===== Markenfarben Design & Building Solutions ===== */
+:root { --bg:#efeeeb; --panel:#fff; --ink:#110f0d; --muted:#5f5850; --line:#dcd7d0; --accent:#796b53; --accent-soft:#eee8de; --gelb:#796b53; --gelb-ink:#fff;
+  --f-display:"Outfit","Geologica","Helvetica Neue",Arial,sans-serif; --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif; }
+.ux-trust b { color:var(--accent); }
+.hint-sw { color:var(--gelb-ink) !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="panel">
+    <h1 data-t="title">Was kostet es?</h1>
+    <p class="sub" data-t="subtitle">Wenige Angaben, und Sie sehen sofort den Richtpreis für drei Ausführungen.</p>
+
+    <div class="step"><i>1</i><div><h2 data-t="s_product">Produkt</h2><div class="prods" id="seg-prod" role="group"></div></div></div>
+    <div class="step" id="st-mat"><i>2</i><div><h2 data-t="s_material">Material</h2><div class="seg" id="seg-mat"></div></div></div>
+    <div class="step"><i id="n-type">3</i><div><h2 data-t="s_type">Typ</h2><div class="seg fields" id="seg-fields"></div><div class="types" id="types"></div></div></div>
+    <div class="step"><i id="n-size">4</i><div><h2 data-t="s_size">Größe</h2>
+      <div class="dims">
+        <div class="dim"><label><span data-t="width">Breite</span><span class="num"><input type="number" id="w-in" step="1" inputmode="numeric"> cm</span></label><input type="range" id="w" step="50"><small><span id="w-min"></span><span id="w-max"></span></small></div>
+        <div class="dim"><label><span data-t="height">Höhe</span><span class="num"><input type="number" id="h-in" step="1" inputmode="numeric"> cm</span></label><input type="range" id="h" step="50"><small><span id="h-min"></span><span id="h-max"></span></small></div>
+      </div><div class="hint" id="hint" hidden></div></div></div>
+    <div class="step"><i id="n-col">5</i><div><h2 data-t="s_colour">Farbe</h2><div class="seg" id="seg-col"></div></div></div>
+    <div class="step" id="st-glass"><i id="n-glass">6</i><div><h2 data-t="s_glass">Glas</h2><div class="seg" id="seg-glass"></div></div></div>
+
+    <div class="step"><i>€</i><div><h2 id="res-title"></h2><div class="res" id="res"></div>
+      <p class="disc" id="disc"></p></div></div>
+
+    <div class="step"><i>≡</i><div><h2 data-t="s_spec">Ihre Spezifikation</h2>
+      <div class="spec" id="spec"></div>
+      <p class="disc" data-t="spec_hint">Menge direkt in der Tabelle ändern. „Bearbeiten“ lädt die Position zurück in den Rechner, „Übernehmen“ speichert die Änderung.</p>
+      <p style="margin:14px 0 0"><button type="button" class="btn" id="send" data-t="send">Angebot anfordern</button></p>
+    </div></div>
+  </section>
+
+  <aside class="pic">
+    <div class="view"><svg id="draw" viewBox="0 0 300 300" role="img" aria-label=""></svg></div>
+    <div class="fact"><span data-t="f_dim">Maß</span><b id="f-dim"></b></div>
+    <div class="fact"><span data-t="f_sel">Ausführung</span><b id="f-sel"></b></div>
+  </aside>
+</div>
+
+<script>
+/* =====================================================================
+   PREISE – alle Zahlen hier. Basis = Website-Richtpreise (Anzeige: ohne Montage).
+   Preis = Basis × (fix + (1−fix) × Fläche/Referenzfläche) × Typ × Farbe × Glas + Zuschläge
+   ===================================================================== */
+var COL = {
+  pvc:  [ { id: 'weiss', f: 1.00, c: '#f4f4f2' }, { id: 'aussen', f: 1.12, c: '#3b3f43' }, { id: 'beidseitig', f: 1.20, c: '#2e3236' }, { id: 'holzdekor', f: 1.15, c: '#b4874f' } ],
+  holz: [ { id: 'lasur', f: 1.00, c: '#d8b27a' }, { id: 'deckend', f: 1.05, c: '#f2f0ea' }, { id: 'eiche', f: 1.25, c: '#b88a56' } ],
+  alu:  [ { id: 'anthrazit', f: 1.00, c: '#383c40' }, { id: 'weiss', f: 1.00, c: '#f4f4f2' }, { id: 'ral', f: 1.08, c: 'linear-gradient(135deg,#c94f3d,#3d6cc9)' }, { id: 'holzdekor', f: 1.18, c: '#a67b4e' } ],
+  tuer: [ { id: 'anthrazit', f: 1.00, c: '#383c40' }, { id: 'weiss', f: 1.00, c: '#f4f4f2' }, { id: 'ral', f: 1.08, c: 'linear-gradient(135deg,#c94f3d,#3d6cc9)' }, { id: 'holzdekor', f: 1.15, c: '#a67b4e' } ]
+};
+var GLASS = [ { id: 'g3', f: 1.00 }, { id: 'g2', f: 0.94 }, { id: 'schall', f: 1.12 } ];
+var P = {
+  fenster: { ref: { w: 1200, h: 1500 }, fix: 0.42, lim: { w: [500, 2400], h: [500, 2400] }, glass: true, stulp: { w: 1600, a: 2.6, f: 1.55 },
+    mats: {
+      kunststoff: { col: 'pvc', tiers: [
+        { lvl: 'Standard', name: 'greenEvolution Flex', sys: 'Salamander · 76 mm · Uw ab 0,83', price: 690 },
+        { lvl: 'Komfort', name: 'bluEvolution 82', sys: 'Salamander · 82 mm · Uw ab 0,74', price: 799, rec: true },
+        { lvl: 'Premium', name: 'bluEvolution 92', sys: 'Salamander · 92 mm · Uw ab 0,73', price: 959 } ] },
+      holz: { col: 'holz', tiers: [
+        { lvl: 'Standard', name: 'Naturo 68', sys: 'Eko-Okna · 68 mm · Uw ab 1,07', price: 990 },
+        { lvl: 'Komfort', name: 'Naturo 80', sys: 'Eko-Okna · 80 mm · Uw ab 0,81', price: 1190, rec: true },
+        { lvl: 'Premium', name: 'Naturo 92', sys: 'Eko-Okna · 92 mm · Uw ab 0,77', price: 1390 } ] },
+      aluminium: { col: 'alu', tiers: [
+        { lvl: 'Standard', name: 'MB-79N', sys: 'Aluprof · Uw ab 0,90', price: 1190 },
+        { lvl: 'Komfort', name: 'MB-86N', sys: 'Aluprof · Uw ab 0,77', price: 1390, rec: true },
+        { lvl: 'Premium', name: 'MB-86N SI / MB-104', sys: 'Aluprof · Passivhaus', price: 1790 } ] } },
+    types: { 1: [ { id: 'dk', f: 1.00, s: ['dk'] }, { id: 'dreh', f: 0.93, s: ['dreh'] }, { id: 'kipp', f: 0.90, s: ['kipp'] }, { id: 'fix', f: 0.78, s: ['fix'] } ],
+             2: [ { id: 'dk_fix', f: 1.38, s: ['dk', 'fix'] }, { id: 'fix_dk', f: 1.38, s: ['fix', 'dk'] }, { id: 'stulp', f: 1.55, s: ['dk', 'dk'] }, { id: 'dreh_dreh', f: 1.45, s: ['dreh', 'dreh'] }, { id: 'fix_fix', f: 1.15, s: ['fix', 'fix'] } ] } },
+  schiebetuer: { ref: { w: 3000, h: 2200 }, fix: 0.5, lim: { w: [1600, 6500], h: [1800, 2600] }, glass: true,
+    /* Material wie beim Fenster wählbar. wMax = größte Breite in mm, only = nur für diese Aufteilungen */
+    mats: {
+      kunststoff: { col: 'pvc', tiers: [
+        { lvl: 'Standard', name: 'Parallel-Schiebe-Kipp', sys: 'Salamander · kippen und schieben · bis 3 m', price: 2390, wMax: 3000, only: ['s2', 's2l'] },
+        { lvl: 'Komfort', name: 'Hebe-Schiebetür Kunststoff', sys: 'Salamander evolutionDrive · bodeneben · bis 6 m', price: 4900, wMax: 6000, rec: true } ] },
+      aluminium: { col: 'alu', tiers: [
+        { lvl: 'Standard', name: 'Hebe-Schiebetür MB-59HS', sys: 'Aluprof · wärmegedämmt · bis 6 m', price: 6900, wMax: 6000 },
+        { lvl: 'Komfort', name: 'Hebe-Schiebetür MB-77HS', sys: 'Aluprof · schmale Ansichten · bis 6,5 m', price: 7900, rec: true },
+        { lvl: 'Premium', name: 'Hebe-Schiebetür MB-77HS HI', sys: 'Aluprof · beste Dämmung · bis 6,5 m', price: 8900 } ] },
+      holz: { col: 'holz', tiers: [
+        { lvl: 'Holz', name: 'Hebe-Schiebetür Holz', sys: 'Eko-Okna · Lasur oder deckend · bis 6 m', price: 6900, wMax: 6000, rec: true } ] } },
+    types: { 1: [ { id: 's2', f: 1.00, s: ['slide', 'fix'] }, { id: 's2l', f: 1.00, s: ['fix', 'slide'] }, { id: 's3', f: 1.35, s: ['fix', 'slide', 'fix'] }, { id: 's4', f: 1.70, s: ['fix', 'slide', 'slide', 'fix'] } ] } },
+  haustuer: { ref: { w: 1100, h: 2100 }, fix: 0.7, lim: { w: [900, 1400], h: [1900, 2500] }, glass: false,
+    mats: {
+      kunststoff: { col: 'pvc', tiers: [
+        { lvl: 'Kunststoff', name: 'Kunststoff-Haustür', sys: 'Salamander · Füllung nach Wahl · RC2', price: 2290, rec: true } ] },
+      aluminium: { col: 'tuer', tiers: [
+        { lvl: 'Komfort', name: 'Aluminium-Haustür', sys: 'Aluprof MB-86N · flügelüberdeckend · RC2', price: 3900, rec: true },
+        { lvl: 'Premium', name: 'Aluminium-Haustür Fingerprint', sys: 'Aluprof · Fingerprint · RC3 möglich', price: 5000 } ] } },
+    /* add = Zuschlag in € je Seitenteil / Oberlicht */
+    types: { 1: [ { id: 'd', f: 1.00, s: ['door'] }, { id: 'd_st', f: 1.00, s: ['door', 'fix'], add: 900 }, { id: 'st_d', f: 1.00, s: ['fix', 'door'], add: 900 }, { id: 'st_d_st', f: 1.00, s: ['fix', 'door', 'fix'], add: 1800 }, { id: 'd_ol', f: 1.00, s: ['door'], top: true, add: 450 }, { id: 'd_st_ol', f: 1.00, s: ['door', 'fix'], top: true, add: 1350 } ] } }
+};
+
+/* ============ TEXTE ============ */
+var LANG = (new URLSearchParams(location.search).get('lang') || 'de').slice(0, 2);
+var T = {
+  de: { title: 'Was kostet es?', subtitle: 'Wenige Angaben, und Sie sehen sofort den Richtpreis für drei Ausführungen.', s_product: 'Produkt', s_material: 'Material', s_type: 'Typ', s_size: 'Größe', s_colour: 'Farbe', s_glass: 'Glas', s_spec: 'Ihre Spezifikation', width: 'Breite', height: 'Höhe', f_dim: 'Maß', f_sel: 'Ausführung',
+    spec_hint: 'Menge direkt in der Tabelle ändern. „Bearbeiten“ lädt die Position zurück in den Rechner, „Übernehmen“ speichert die Änderung.', send: 'Angebot anfordern',
+    res_fenster: 'Ihr Richtpreis pro Fenster', res_schiebetuer: 'Ihr Richtpreis pro Schiebetür', res_haustuer: 'Ihr Richtpreis pro Haustür',
+    disc_fenster: 'Richtpreis inkl. Lieferung in Wien und Umgebung, ohne Montage, unverbindlich. Den Fixpreis nennen wir nach dem kostenlosen Aufmaß bei Ihnen zu Hause.',
+    disc_schiebetuer: 'Richtpreis inkl. Lieferung, ohne Montage, unverbindlich. Bodenebene Schwelle, Antrieb und Sonnenschutz rechnen wir nach dem Aufmaß dazu.',
+    disc_haustuer: 'Richtpreis inkl. Lieferung, ohne Montage, unverbindlich. Füllung, Glasausschnitt und Zutrittssystem besprechen wir in der Ausstellung.',
+    p_fenster: 'Fenster', p_schiebetuer: 'Schiebetür', p_haustuer: 'Haustür', pd_fenster: 'Kunststoff, Alu oder Holz', pd_schiebetuer: 'Kunststoff, Alu oder Holz', pd_haustuer: 'Kunststoff oder Aluminium', m_kunststoff: 'Kunststoff', m_holz: 'Holz', m_aluminium: 'Aluminium', m_alle: '',
+    rec: 'Empfehlung', choose: 'Auswählen', apply: 'Übernehmen', stulp: '2 Flügel', fields1: '1 Feld', fields2: '2 Felder',
+    t_dk: 'Dreh-Kipp', t_dreh: 'Dreh', t_kipp: 'Kipp', t_fix: 'Fix', t_dk_fix: 'Dreh-Kipp + Fix', t_fix_dk: 'Fix + Dreh-Kipp', t_stulp: '2 × Dreh-Kipp (Stulp)', t_dreh_dreh: '2 × Dreh', t_fix_fix: '2 × Fix',
+    t_s2: '2-teilig, Schiebeflügel links', t_s2l: '2-teilig, Schiebeflügel rechts', t_s3: '3-teilig, Mitte schiebt', t_s4: '4-teilig, 2 Schiebeflügel',
+    t_d: 'Tür', t_d_st: 'Tür + Seitenteil rechts', t_st_d: 'Seitenteil links + Tür', t_st_d_st: '2 Seitenteile', t_d_ol: 'Tür + Oberlicht', t_d_st_ol: 'Tür + Seitenteil + Oberlicht',
+    c_weiss: 'Weiß', c_aussen: 'Farbe außen, weiß innen', c_beidseitig: 'Farbe beidseitig', c_holzdekor: 'Holzdekor', c_lasur: 'Lasur natur', c_deckend: 'Deckend weiß', c_eiche: 'Eiche', c_anthrazit: 'Anthrazit RAL 7016', c_ral: 'Wunsch-RAL',
+    g_g3: '3-fach (Standard)', g_g2: '2-fach', g_schall: 'Schallschutz',
+    hint_tier: 'Bei {w} Breite möglich: {list}.', only_to: 'nur bis {m} Breite', only_2: 'nur als 2-teilige Tür', switch_mat: 'Auf {mat} wechseln', hint_type: 'Für „{type}“ möglich: {list}.', hint_none: 'In {mat} gibt es für diese Breite keine Ausführung. Bitte wählen Sie ein anderes Material oder eine kleinere Breite.', hint_stulp: 'Ab 160 cm Breite oder 2,6 m² rechnen wir mit 2 Flügeln.',
+    th_pos: 'Position', th_qty: 'Stk.', th_price: 'Preis', th_sum: 'Summe', total: 'Summe Richtpreis', edit: 'Bearbeiten', del: 'Entfernen', empty: 'Noch leer. Wählen Sie oben eine Ausführung, sie erscheint hier als Position.',
+    msg_head: 'Anfrage aus dem Preisrechner:', msg_total: 'Summe Richtpreis: {sum}' },
+  en: { title: 'What does it cost?', subtitle: 'A few choices and you instantly see the guide price for three versions.', s_product: 'Product', s_material: 'Material', s_type: 'Type', s_size: 'Size', s_colour: 'Colour', s_glass: 'Glass', s_spec: 'Your specification', width: 'Width', height: 'Height', f_dim: 'Size', f_sel: 'Version',
+    spec_hint: 'Change the quantity directly in the table. "Edit" loads the item back into the calculator, "Apply" saves the change.', send: 'Request a quote',
+    res_fenster: 'Your guide price per window', res_schiebetuer: 'Your guide price per sliding door', res_haustuer: 'Your guide price per entrance door',
+    disc_fenster: 'Guide price incl. delivery in Vienna and surroundings, excluding installation, non-binding. Fixed price after the free on-site measurement.',
+    disc_schiebetuer: 'Guide price incl. delivery, excluding installation, non-binding. Flush threshold, drive and sun protection are added after the measurement.',
+    disc_haustuer: 'Guide price incl. delivery, excluding installation, non-binding. Panel, glass cut-out and access system are discussed in the showroom.',
+    p_fenster: 'Window', p_schiebetuer: 'Sliding door', p_haustuer: 'Entrance door', pd_fenster: 'uPVC, aluminium or timber', pd_schiebetuer: 'uPVC, aluminium or timber', pd_haustuer: 'uPVC or aluminium', m_kunststoff: 'uPVC', m_holz: 'Timber', m_aluminium: 'Aluminium', m_alle: '',
+    rec: 'Recommended', choose: 'Select', apply: 'Apply', stulp: '2 sashes', fields1: '1 field', fields2: '2 fields',
+    t_dk: 'Tilt & turn', t_dreh: 'Side-hung', t_kipp: 'Tilt only', t_fix: 'Fixed', t_dk_fix: 'Tilt & turn + fixed', t_fix_dk: 'Fixed + tilt & turn', t_stulp: '2 × tilt & turn (French)', t_dreh_dreh: '2 × side-hung', t_fix_fix: '2 × fixed',
+    t_s2: '2-part, sliding sash left', t_s2l: '2-part, sliding sash right', t_s3: '3-part, centre slides', t_s4: '4-part, 2 sliding sashes',
+    t_d: 'Door', t_d_st: 'Door + side panel right', t_st_d: 'Side panel left + door', t_st_d_st: '2 side panels', t_d_ol: 'Door + top light', t_d_st_ol: 'Door + side panel + top light',
+    c_weiss: 'White', c_aussen: 'Colour outside, white inside', c_beidseitig: 'Colour both sides', c_holzdekor: 'Wood decor', c_lasur: 'Natural stain', c_deckend: 'Opaque white', c_eiche: 'Oak', c_anthrazit: 'Anthracite RAL 7016', c_ral: 'Any RAL',
+    g_g3: 'Triple (standard)', g_g2: 'Double', g_schall: 'Acoustic',
+    hint_tier: 'At {w} width available: {list}.', only_to: 'only up to {m} wide', only_2: 'only as a 2-part door', switch_mat: 'Switch to {mat}', hint_type: 'For “{type}” available: {list}.', hint_none: 'In {mat} there is no version for this width. Please choose another material or a smaller width.', hint_stulp: 'From 160 cm width or 2.6 m² we calculate with 2 sashes.',
+    th_pos: 'Item', th_qty: 'Qty', th_price: 'Price', th_sum: 'Total', total: 'Total guide price', edit: 'Edit', del: 'Remove', empty: 'Empty so far. Select a version above and it appears here as an item.',
+    msg_head: 'Request from the price calculator:', msg_total: 'Total guide price: {sum}' },
+  ru: { title: 'Сколько это стоит?', subtitle: 'Несколько выборов — и вы сразу видите ориентировочную цену трёх вариантов.', s_product: 'Продукт', s_material: 'Материал', s_type: 'Тип', s_size: 'Размер', s_colour: 'Цвет', s_glass: 'Стекло', s_spec: 'Ваша спецификация', width: 'Ширина', height: 'Высота', f_dim: 'Размер', f_sel: 'Исполнение',
+    spec_hint: 'Количество меняется прямо в таблице. «Изменить» загружает позицию обратно в калькулятор, «Применить» сохраняет изменения.', send: 'Запросить предложение',
+    res_fenster: 'Ориентировочная цена за окно', res_schiebetuer: 'Ориентировочная цена за раздвижную дверь', res_haustuer: 'Ориентировочная цена за входную дверь',
+    disc_fenster: 'Ориентировочная цена с доставкой по Вене и окрестностям, без монтажа, без обязательств. Фиксированную цену назовём после бесплатного замера.',
+    disc_schiebetuer: 'Ориентировочная цена с доставкой, без монтажа, без обязательств. Нулевой порог, привод и солнцезащиту добавим после замера.',
+    disc_haustuer: 'Ориентировочная цена с доставкой, без монтажа, без обязательств. Филёнку, остекление и систему доступа обсудим в шоуруме.',
+    p_fenster: 'Окно', p_schiebetuer: 'Раздвижная дверь', p_haustuer: 'Входная дверь', pd_fenster: 'ПВХ, алюминий или дерево', pd_schiebetuer: 'ПВХ, алюминий или дерево', pd_haustuer: 'ПВХ или алюминий', m_kunststoff: 'ПВХ', m_holz: 'Дерево', m_aluminium: 'Алюминий', m_alle: '',
+    rec: 'Рекомендуем', choose: 'Выбрать', apply: 'Применить', stulp: '2 створки', fields1: '1 поле', fields2: '2 поля',
+    t_dk: 'Поворотно-откидное', t_dreh: 'Поворотное', t_kipp: 'Откидное', t_fix: 'Глухое', t_dk_fix: 'Пов.-откидное + глухое', t_fix_dk: 'Глухое + пов.-откидное', t_stulp: '2 × пов.-откидное (штульп)', t_dreh_dreh: '2 × поворотное', t_fix_fix: '2 × глухое',
+    t_s2: '2 части, сдвижная слева', t_s2l: '2 части, сдвижная справа', t_s3: '3 части, средняя сдвижная', t_s4: '4 части, 2 сдвижные',
+    t_d: 'Дверь', t_d_st: 'Дверь + боковина справа', t_st_d: 'Боковина слева + дверь', t_st_d_st: '2 боковины', t_d_ol: 'Дверь + фрамуга', t_d_st_ol: 'Дверь + боковина + фрамуга',
+    c_weiss: 'Белый', c_aussen: 'Цвет снаружи, белый внутри', c_beidseitig: 'Цвет с двух сторон', c_holzdekor: 'Декор дерево', c_lasur: 'Лазурь натуральная', c_deckend: 'Укрывная белая', c_eiche: 'Дуб', c_anthrazit: 'Антрацит RAL 7016', c_ral: 'Любой RAL',
+    g_g3: 'Тройное остекление (стандарт)', g_g2: 'Двойное остекление', g_schall: 'Шумозащитное',
+    hint_tier: 'При ширине {w} подходит: {list}.', only_to: 'только до {m} ширины', only_2: 'только 2-частная дверь', switch_mat: 'Выбрать: {mat}', hint_type: 'Для варианта «{type}» подходит: {list}.', hint_none: 'Из материала «{mat}» на такую ширину вариантов нет. Выберите другой материал или уменьшите ширину.', hint_stulp: 'От 160 см ширины или 2,6 м² считаем 2 створки.',
+    th_pos: 'Позиция', th_qty: 'Шт.', th_price: 'Цена', th_sum: 'Сумма', total: 'Итого ориентировочно', edit: 'Изменить', del: 'Удалить', empty: 'Пока пусто. Выберите исполнение выше — оно появится здесь позицией.',
+    msg_head: 'Запрос из калькулятора:', msg_total: 'Итого ориентировочно: {sum}' }
+};
+if (!T[LANG]) LANG = 'de';
+function t(k, v) { var s = T[LANG][k] != null ? T[LANG][k] : (T.de[k] != null ? T.de[k] : k); if (v) Object.keys(v).forEach(function (x) { s = s.split('{' + x + '}').join(v[x]); }); return s; }
+document.documentElement.lang = LANG;
+document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t); });
+
+/* ============ STATE ============ */
+var $ = function (q) { return document.querySelector(q); };
+var S = { prod: 'fenster', mat: 'kunststoff', fields: 1, type: 'dk', w: 1200, h: 1500, col: 'weiss', glass: 'g3' };
+var SPEC = [], EDIT = null; // EDIT = index der Position, die gerade bearbeitet wird
+var NF = new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+function fmt(n) { return NF.format(Math.round(n / 10) * 10); }
+function prod() { return P[S.prod]; }
+function mat() { return prod().mats[S.mat] || prod().mats[Object.keys(prod().mats)[0]]; }
+function tiers() { return mat().tiers; }
+function colSet(tr) { return COL[(tr && tr.col) || mat().col]; }
+function col() { var set = colSet(); return set.filter(function (c) { return c.id === S.col; })[0] || set[0]; }
+function gl() { return GLASS.filter(function (g) { return g.id === S.glass; })[0]; }
+function typesNow() { return prod().types[S.fields] || prod().types[1]; }
+function typ() { return typesNow().filter(function (x) { return x.id === S.type; })[0] || typesNow()[0]; }
+function stulp() { var st = prod().stulp; return !!st && S.fields === 1 && typ().id !== 'fix' && (S.w > st.w || S.w * S.h / 1e6 > st.a); }
+function price(tr) {
+  var p = prod(), a = S.w * S.h / 1e6, ref = p.ref.w * p.ref.h / 1e6, ty = typ();
+  var f = stulp() ? p.stulp.f : ty.f;
+  return tr.price * (p.fix + (1 - p.fix) * a / ref) * f * col().f * (p.glass ? gl().f : 1) + (ty.add || 0);
+}
+function mStr(mmv) { return (mmv / 1000).toLocaleString(LANG === 'en' ? 'en-GB' : 'de-AT', { maximumFractionDigits: 2 }) + (LANG === 'ru' ? '\u00a0м' : '\u00a0m'); }
+var TIER_X = {"en": {"Standard": "Standard", "Komfort": "Comfort", "Premium": "Premium", "Holz": "Timber", "Kunststoff": "uPVC", "Aluprof · Passivhaus": "Aluprof · passive house", "Parallel-Schiebe-Kipp": "Tilt-and-slide door", "Salamander · kippen und schieben · bis 3 m": "Salamander · tilt and slide · up to 3 m", "Hebe-Schiebetür Kunststoff": "Lift-and-slide door, uPVC", "Salamander evolutionDrive · bodeneben · bis 6 m": "Salamander evolutionDrive · level threshold · up to 6 m", "Hebe-Schiebetür MB-59HS": "Lift-and-slide door MB-59HS", "Aluprof · wärmegedämmt · bis 6 m": "Aluprof · thermally insulated · up to 6 m", "Hebe-Schiebetür MB-77HS": "Lift-and-slide door MB-77HS", "Aluprof · schmale Ansichten · bis 6,5 m": "Aluprof · slim sightlines · up to 6.5 m", "Hebe-Schiebetür MB-77HS HI": "Lift-and-slide door MB-77HS HI", "Aluprof · beste Dämmung · bis 6,5 m": "Aluprof · best insulation · up to 6.5 m", "Hebe-Schiebetür Holz": "Lift-and-slide door, timber", "Eko-Okna · Lasur oder deckend · bis 6 m": "Eko-Okna · glaze or opaque · up to 6 m", "Kunststoff-Haustür": "uPVC entrance door", "Salamander · Füllung nach Wahl · RC2": "Salamander · panel of your choice · RC2", "Aluminium-Haustür": "Aluminium entrance door", "Aluprof MB-86N · flügelüberdeckend · RC2": "Aluprof MB-86N · sash-covering panel · RC2", "Aluminium-Haustür Fingerprint": "Aluminium entrance door with fingerprint", "Aluprof · Fingerprint · RC3 möglich": "Aluprof · fingerprint · RC3 possible"}, "ru": {"Standard": "Стандарт", "Komfort": "Комфорт", "Premium": "Премиум", "Holz": "Дерево", "Kunststoff": "ПВХ", "Aluprof · Passivhaus": "Aluprof · пассивный дом", "Parallel-Schiebe-Kipp": "Параллельно-сдвижная дверь", "Salamander · kippen und schieben · bis 3 m": "Salamander · откидывается и сдвигается · до 3 м", "Hebe-Schiebetür Kunststoff": "Подъёмно-раздвижная дверь ПВХ", "Salamander evolutionDrive · bodeneben · bis 6 m": "Salamander evolutionDrive · порог в уровень пола · до 6 м", "Hebe-Schiebetür MB-59HS": "Подъёмно-раздвижная MB-59HS", "Aluprof · wärmegedämmt · bis 6 m": "Aluprof · тёплая · до 6 м", "Hebe-Schiebetür MB-77HS": "Подъёмно-раздвижная MB-77HS", "Aluprof · schmale Ansichten · bis 6,5 m": "Aluprof · узкие профили · до 6,5 м", "Hebe-Schiebetür MB-77HS HI": "Подъёмно-раздвижная MB-77HS HI", "Aluprof · beste Dämmung · bis 6,5 m": "Aluprof · лучшая теплоизоляция · до 6,5 м", "Hebe-Schiebetür Holz": "Подъёмно-раздвижная дверь из дерева", "Eko-Okna · Lasur oder deckend · bis 6 m": "Eko-Okna · лазурь или укрывная краска · до 6 м", "Kunststoff-Haustür": "Входная дверь ПВХ", "Salamander · Füllung nach Wahl · RC2": "Salamander · заполнение на выбор · RC2", "Aluminium-Haustür": "Алюминиевая входная дверь", "Aluprof MB-86N · flügelüberdeckend · RC2": "Aluprof MB-86N · накладная панель · RC2", "Aluminium-Haustür Fingerprint": "Алюминиевая входная дверь с отпечатком пальца", "Aluprof · Fingerprint · RC3 möglich": "Aluprof · сканер отпечатка · возможно RC3"}};
+function X(str) { var m = TIER_X[LANG]; if (m && m[str]) return m[str]; if (LANG === 'en') return str.replace(/ Uw ab /, ' Uw from '); if (LANG === 'ru') return str.replace(/ Uw ab /, ' Uw от '); return str; }
+function typeOk(tr) { return !tr.only || tr.only.indexOf(typ().id) >= 0; }
+function widthOk(tr) { return !tr.wMax || S.w <= tr.wMax; }
+function tierOk(tr) { return typeOk(tr) && widthOk(tr); }
+
+/* ============ PIKTOGRAMM (Ansicht von innen) ============ */
+function pict(ty, w, h, frameC, edge, glassC) {
+  var sashes = ty.s, top = ty.top, fw = Math.max(3, w * 0.05), sw = Math.max(2.5, w * 0.035), o = [];
+  var r = function (a, b, cw, ch, f) { o.push('<rect x="' + a + '" y="' + b + '" width="' + cw + '" height="' + ch + '" fill="' + f + '" stroke="' + edge + '"/>'); };
+  r(0, 0, w, h, frameC);
+  var n = sashes.length, ih = h - 2 * fw, y0 = fw;
+  if (top) { var th = ih * 0.22; r(fw, y0, w - 2 * fw, th, glassC); y0 += th; ih -= th; }
+  var widths = sashes.map(function (k) { return k === 'door' ? 1.0 : (k === 'fix' && sashes.indexOf('door') >= 0 ? 0.45 : 1.0); });
+  var sum = widths.reduce(function (a, b) { return a + b; }, 0), x = fw;
+  sashes.forEach(function (k, i) {
+    var iw = (w - 2 * fw) * widths[i] / sum, y = y0;
+    if (k === 'fix') { r(x, y, iw, ih, glassC); x += iw; return; }
+    r(x, y, iw, ih, frameC); var gx = x + sw, gy = y + sw, gw = iw - 2 * sw, gh = ih - 2 * sw;
+    if (k === 'door') { r(gx + gw * 0.2, gy + gh * 0.1, gw * 0.6, gh * 0.42, glassC); o.push('<rect x="' + (gx + gw * 0.86) + '" y="' + (gy + gh * 0.46) + '" width="' + (sw * 0.9) + '" height="' + (gh * 0.18) + '" rx="1" fill="#555"/>'); x += iw; return; }
+    r(gx, gy, gw, gh, glassC);
+    if (k === 'slide') { o.push('<path d="M' + (gx + gw * 0.2) + ' ' + (gy + gh / 2) + ' H' + (gx + gw * 0.8) + ' m-' + (gw * 0.12) + ' -' + (gh * 0.08) + ' l' + (gw * 0.12) + ' ' + (gh * 0.08) + ' -' + (gw * 0.12) + ' ' + (gh * 0.08) + '" fill="none" stroke="#1c2226" stroke-width="1.5"/>'); x += iw; return; }
+    var left = n === 1 || i === 0, hinge = left ? gx : gx + gw, far = left ? gx + gw : gx, d = '';
+    if (k === 'dk' || k === 'dreh') d += 'M' + far + ' ' + gy + ' L' + hinge + ' ' + (gy + gh / 2) + ' L' + far + ' ' + (gy + gh) + ' ';
+    if (k === 'dk' || k === 'kipp') d += 'M' + gx + ' ' + (gy + gh) + ' L' + (gx + gw / 2) + ' ' + gy + ' L' + (gx + gw) + ' ' + (gy + gh);
+    o.push('<path d="' + d + '" fill="none" stroke="#1c2226" stroke-width="1" stroke-dasharray="3 2"/>');
+    if (k !== 'kipp') o.push('<rect x="' + (left ? gx - sw * 0.8 : gx + gw + sw * 0.1) + '" y="' + (gy + gh / 2 - gh * 0.08) + '" width="' + (sw * 0.7) + '" height="' + (gh * 0.16) + '" rx="1" fill="#555"/>');
+    x += iw;
+  });
+  return o.join('');
+}
+
+/* ============ RENDER ============ */
+function seg(host, items, cur, on, label, swatch) {
+  host.innerHTML = '';
+  items.forEach(function (it) {
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(it.id) === String(cur));
+    b.innerHTML = (swatch && it.c ? '<i class="c" style="background:' + it.c + '"></i>' : '') + label(it);
+    b.addEventListener('click', function () { on(it.id); }); host.appendChild(b);
+  });
+}
+/* Produktbilder: gezeichnet, damit alle drei gleich aussehen und auf jedem Bildschirm scharf bleiben */
+var PROD_ART = (function () {
+  var G = '<defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef4f7"/><stop offset=".55" stop-color="#cfdce3"/><stop offset="1" stop-color="#b4c6d0"/></linearGradient>' +
+          '<linearGradient id="pf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5257"/><stop offset="1" stop-color="#30363a"/></linearGradient>' +
+          '<linearGradient id="ph" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f4f6f7"/><stop offset="1" stop-color="#9aa3a9"/></linearGradient>' +
+          '<radialGradient id="ps"><stop offset="0" stop-color="#1c2226" stop-opacity=".28"/><stop offset="1" stop-color="#1c2226" stop-opacity="0"/></radialGradient></defs>';
+  function shadow() { return ''; }
+  function box(x, y, w, h, d) { /* Rahmen mit Tiefe nach rechts hinten */
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="1.5" fill="url(#pf)"/>';
+  }
+  function glass(x, y, w, h) {
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="url(#pg)"/>' +
+           '<polygon points="' + (x + w * .18) + ',' + y + ' ' + (x + w * .42) + ',' + y + ' ' + (x + w * .08) + ',' + (y + h) + ' ' + x + ',' + (y + h) + ' ' + x + ',' + (y + h * .72) + '" fill="#fff" opacity=".35"/>';
+  }
+  return {
+    fenster: '<svg viewBox="0 0 160 120" aria-hidden="true">' + G + shadow(82, 44) +
+      box(46, 10, 66, 98, 7) + '<rect x="52" y="16" width="54" height="86" rx="1" fill="#3b4246"/>' + glass(58, 22, 42, 74) +
+      '<rect x="98.5" y="52" width="4" height="15" rx="2" fill="url(#ph)"/><rect x="97" y="54" width="7" height="3.4" rx="1.7" fill="#dfe3e6"/></svg>',
+    schiebetuer: '<svg viewBox="0 0 160 120" aria-hidden="true">' + G + shadow(80, 66) +
+      box(16, 12, 124, 96, 7) + '<rect x="21" y="17" width="114" height="86" fill="#2f3539"/>' +
+      '<rect x="22" y="18" width="60" height="84" fill="#3b4246"/>' + glass(27, 23, 50, 74) +
+      '<rect x="74" y="18" width="60" height="84" fill="#444c51"/>' + glass(79, 23, 50, 74) +
+      '<rect x="80" y="50" width="3" height="22" rx="1.5" fill="url(#ph)"/>' +
+      '<path d="M100 60h16m-5-4 5 4-5 4" stroke="#1c2226" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/></svg>',
+    haustuer: '<svg viewBox="0 0 160 120" aria-hidden="true">' + G + shadow(82, 34) +
+      box(54, 6, 52, 102, 7) + '<rect x="59" y="11" width="42" height="94" fill="#3a4146"/>' +
+      '<rect x="64" y="18" width="7" height="80" rx="1" fill="url(#pg)" opacity=".9"/>' +
+      '<rect x="92" y="34" width="3.2" height="46" rx="1.6" fill="url(#ph)"/><rect x="89.5" y="38" width="3" height="2.6" fill="#b9c0c5"/><rect x="89.5" y="74" width="3" height="2.6" fill="#b9c0c5"/>' +
+      '<circle cx="93.6" cy="88" r="1.6" fill="#c9d0d4"/></svg>'
+  };
+})();
+function prodCards() {
+  var host = $('#seg-prod'); host.innerHTML = '';
+  Object.keys(P).forEach(function (k) {
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(k === S.prod));
+    b.innerHTML = '<span class="im">' + (PROD_ART[k] || '') + '</span><span class="tx"><b>' + t('p_' + k) + '</b><small>' + t('pd_' + k) + '</small></span>';
+    b.addEventListener('click', function () { if (S.prod === k) return; setProd(k); renderAll(); });
+    host.appendChild(b);
+  });
+}
+function setProd(id) {
+  S.prod = id; var p = P[id]; S.mat = Object.keys(p.mats)[0]; S.fields = 1; S.type = p.types[1][0].id; S.w = p.ref.w; S.h = p.ref.h; S.col = colSet()[0].id; S.glass = 'g3';
+}
+function renderAll() {
+  var p = prod(), mats = Object.keys(p.mats), multi = mats.length > 1, n = 2;
+  if (!p.mats[S.mat]) { S.mat = mats[0]; if (!colSet().filter(function (c) { return c.id === S.col; }).length) S.col = colSet()[0].id; }
+  prodCards();
+  $('#st-mat').hidden = !multi;
+  if (multi) { seg($('#seg-mat'), mats.map(function (k) { return { id: k }; }), S.mat, function (id) { S.mat = id; if (!colSet().filter(function (c) { return c.id === S.col; }).length) S.col = colSet()[0].id; renderAll(); }, function (it) { return t('m_' + it.id); }); n = 3; }
+  $('#n-type').textContent = n++; $('#n-size').textContent = n++; $('#n-col').textContent = n++; $('#n-glass').textContent = n;
+  var fk = Object.keys(p.types); $('#seg-fields').hidden = fk.length < 2;
+  if (fk.length > 1) seg($('#seg-fields'), fk.map(function (k) { return { id: +k }; }), S.fields, function (id) { S.fields = id; S.type = p.types[id][0].id; renderAll(); }, function (it) { return t('fields' + it.id); });
+  var th = $('#types'); th.innerHTML = '';
+  typesNow().forEach(function (ty) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'type'; b.setAttribute('aria-pressed', ty.id === S.type);
+    var pw = Math.min(72, 30 + 18 * ty.s.length + (ty.s.indexOf('door') >= 0 ? 6 : 0)), ph = 56;
+    b.innerHTML = '<svg viewBox="0 0 ' + pw + ' ' + ph + '">' + pict(ty, pw, ph, '#fff', '#9aa3aa', '#e4eef3') + '</svg><span>' + t('t_' + ty.id) + '</span>';
+    b.addEventListener('click', function () { S.type = ty.id; renderAll(); }); th.appendChild(b);
+  });
+  ['w', 'h'].forEach(function (k) { var l = p.lim[k]; var r = $('#' + k); r.min = l[0]; r.max = l[1]; $('#' + k + '-in').min = l[0] / 10; $('#' + k + '-in').max = l[1] / 10; $('#' + k + '-min').textContent = l[0] / 10 + ' cm'; $('#' + k + '-max').textContent = l[1] / 10 + ' cm'; });
+  seg($('#seg-col'), colSet(), S.col, function (id) { S.col = id; renderAll(); }, function (it) { return t('c_' + it.id); }, true);
+  $('#st-glass').hidden = !p.glass;
+  if (p.glass) seg($('#seg-glass'), GLASS, S.glass, function (id) { S.glass = id; renderAll(); }, function (it) { return t('g_' + it.id); });
+  $('#res-title').textContent = t('res_' + S.prod); $('#disc').textContent = t('disc_' + S.prod);
+  update();
+}
+function clampSize() { var l = prod().lim; S.w = Math.min(l.w[1], Math.max(l.w[0], S.w)); S.h = Math.min(l.h[1], Math.max(l.h[0], S.h)); }
+function update() {
+  clampSize();
+  if (document.activeElement !== $('#w-in')) $('#w-in').value = Math.round(S.w / 10);
+  if (document.activeElement !== $('#h-in')) $('#h-in').value = Math.round(S.h / 10);
+  $('#w').value = S.w; $('#h').value = S.h;
+  var hints = [];
+  if (stulp()) hints.push(t('hint_stulp'));
+  var okT = tiers().filter(tierOk), recT = okT.filter(function (x) { return x.rec; })[0] || okT[okT.length - 1];
+  var Q = LANG === 'ru' ? ['«', '»'] : LANG === 'en' ? ['“', '”'] : ['„', '“'], list = okT.map(function (x) { return Q[0] + X(x.name) + Q[1]; }).join(', ');
+  if (!okT.length) hints.push(t('hint_none', { mat: t('m_' + S.mat) }));
+  else if (okT.length < tiers().length) hints.push(tiers().some(function (x) { return !typeOk(x); }) && tiers().every(widthOk) ? t('hint_type', { type: t('t_' + typ().id), list: list }) : t('hint_tier', { w: mStr(S.w), list: list }));
+  $('#hint').hidden = !hints.length; $('#hint').textContent = hints.join(' ');
+  if (!okT.length) {
+    var alt = Object.keys(prod().mats).filter(function (k) { return k !== S.mat && prod().mats[k].tiers.some(function (x) { return typeOk(x) && widthOk(x); }); })[0];
+    if (alt) { var sw = document.createElement('button'); sw.type = 'button'; sw.className = 'hint-sw'; sw.textContent = t('switch_mat', { mat: t('m_' + alt) });
+      sw.addEventListener('click', function () { S.mat = alt; if (!colSet().filter(function (c) { return c.id === S.col; }).length) S.col = colSet()[0].id; renderAll(); });
+      $('#hint').appendChild(document.createTextNode(' ')); $('#hint').appendChild(sw); }
+  }
+  var res = $('#res'); res.innerHTML = '';
+  tiers().forEach(function (tr) {
+    var ok = tierOk(tr), pr = price(tr), isRec = ok && tr === recT, d = document.createElement('div'); d.className = 'tier' + (isRec ? ' rec' : ''); if (!ok) d.style.opacity = .55;
+    d.innerHTML = '<span class="lvl">' + X(tr.lvl) + (isRec ? ' · ' + t('rec') : '') + '</span><span class="name">' + X(tr.name) + '</span><span class="sys">' + X(tr.sys) + '</span><span class="price">' + (ok ? fmt(pr) : '<small class="no">' + (typeOk(tr) ? t('only_to', { m: mStr(tr.wMax) }) : t('only_2')) + '</small>') + (stulp() ? '<small>' + t('stulp') + '</small>' : '') + '</span><button type="button"' + (ok ? '' : ' disabled') + '>' + (EDIT !== null ? t('apply') : t('choose')) + '</button>';
+    d.querySelector('button').addEventListener('click', function () { choose(tr, pr); });
+    res.appendChild(d);
+  });
+  $('#f-dim').textContent = S.w + ' × ' + S.h + ' mm' + (stulp() ? ' · ' + t('stulp') : '');
+  $('#f-sel').textContent = [t('p_' + S.prod), t('m_' + S.mat), t('t_' + S.type), t('c_' + S.col), prod().glass ? t('g_' + S.glass) : ''].filter(Boolean).join(' · ');
+  draw(); fit();
+}
+function draw() {
+  var W = 300, H = 300, pad = 30, ty = stulp() ? { s: ['dk', 'dk'] } : typ();
+  var extra = ty.s.filter(function (k) { return k === 'fix' && ty.s.indexOf('door') >= 0; }).length * 0.45 * S.w; // Seitenteile verbreitern die Zeichnung
+  var tw = S.w + extra, thh = S.h * (ty.top ? 1.28 : 1);
+  var sc = Math.min((W - 2 * pad) / tw, (H - 2 * pad) / thh), w = tw * sc, h = thh * sc, x = (W - w) / 2, y = (H - h) / 2;
+  var c = col().c, dark = !/^#f/.test(c), frame = /gradient/.test(c) ? '#8a93a0' : c, edge = dark ? '#111' : '#9aa3aa';
+  $('#draw').innerHTML = '<g transform="translate(' + x + ' ' + y + ')">' + pict(ty, w, h, frame, edge, '#cfe3ee') + '</g>';
+}
+
+/* ============ SPEZIFIKATION ============ */
+function snapshot(tr, pr) {
+  return { prod: S.prod, mat: S.mat, fields: S.fields, type: S.type, w: S.w, h: S.h, col: S.col, glass: S.glass, tier: tr.name, price: pr, qty: 1,
+    label: X(tr.name), detail: [t('p_' + S.prod), t('m_' + S.mat), t('t_' + S.type) + (stulp() ? ' → ' + t('stulp') : ''), S.w + ' × ' + S.h + ' mm', t('c_' + S.col), prod().glass ? t('g_' + S.glass) : ''].filter(Boolean).join(' · ') };
+}
+function choose(tr, pr) {
+  var it = snapshot(tr, pr);
+  if (EDIT !== null) { it.qty = SPEC[EDIT].qty; SPEC[EDIT] = it; EDIT = null; } else SPEC.push(it);
+  renderSpec(); update();
+  $('#spec').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function renderSpec() {
+  var host = $('#spec');
+  if (!SPEC.length) { host.innerHTML = '<p class="empty">' + t('empty') + '</p>'; $('#send').disabled = true; fit(); return; }
+  var sum = 0, rows = SPEC.map(function (it, i) { sum += it.qty * it.price;
+    return '<tr' + (EDIT === i ? ' style="background:var(--accent-soft)"' : '') + '><td><b>' + (i + 1) + '. ' + it.label + '</b><div class="d">' + it.detail + '</div><div class="act"><button type="button" data-edit="' + i + '">' + t('edit') + '</button><button type="button" data-del="' + i + '">' + t('del') + '</button></div></td>' +
+      '<td class="n"><input class="q" type="number" min="1" max="99" value="' + it.qty + '" data-qty="' + i + '"></td><td class="n">' + fmt(it.price) + '</td><td class="n"><b>' + fmt(it.qty * it.price) + '</b></td></tr>'; });
+  host.innerHTML = '<table><thead><tr><th>' + t('th_pos') + '</th><th style="text-align:center">' + t('th_qty') + '</th><th style="text-align:right">' + t('th_price') + '</th><th style="text-align:right">' + t('th_sum') + '</th></tr></thead><tbody>' + rows.join('') + '</tbody>' +
+    '<tfoot><tr><td colspan="3" style="text-align:right;color:var(--muted)">' + t('total') + '</td><td class="n"><b>' + fmt(sum) + '</b></td></tr></tfoot></table>';
+  $('#send').disabled = false;
+  host.querySelectorAll('[data-qty]').forEach(function (inp) { inp.addEventListener('input', function () { var q = Math.min(99, Math.max(1, parseInt(this.value) || 1)); SPEC[this.dataset.qty].qty = q; renderSpec(); }); });
+  host.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { SPEC.splice(+this.dataset.del, 1); if (EDIT !== null) EDIT = null; renderSpec(); update(); }); });
+  host.querySelectorAll('[data-edit]').forEach(function (b) { b.addEventListener('click', function () { var it = SPEC[+this.dataset.edit]; EDIT = +this.dataset.edit; S.prod = it.prod; S.mat = it.mat; S.fields = it.fields; S.type = it.type; S.w = it.w; S.h = it.h; S.col = it.col; S.glass = it.glass; renderAll(); renderSpec(); window.scrollTo({ top: 0, behavior: 'smooth' }); if (window.parent !== window) window.parent.postMessage({ type: 'db-scroll-top' }, '*'); }); });
+  fit();
+}
+$('#send').addEventListener('click', function () {
+  if (!SPEC.length) return;
+  var sum = 0, lines = SPEC.map(function (it, i) { sum += it.qty * it.price; return (i + 1) + '. ' + it.qty + ' × ' + it.label + ' – ' + it.detail + ' – ' + fmt(it.qty * it.price); });
+  var note = t('msg_head') + '\n' + lines.join('\n') + '\n' + t('msg_total', { sum: fmt(sum) });
+  var M = { fenster: 'Fenster', schiebetuer: 'Schiebetür', haustuer: 'Haustür' }, what = SPEC.map(function (it) { return M[it.prod]; }).filter(function (x, i, a) { return a.indexOf(x) === i; }).join('|');
+  if (window.parent !== window) window.parent.postMessage({ type: 'db-anfrage', what: what, note: note }, '*');
+  else location.href = 'index.html#kontakt';
+});
+
+/* ============ INPUTS / HÖHE AN ELTERNSEITE ============ */
+$('#w').addEventListener('input', function () { S.w = +this.value; update(); });
+$('#h').addEventListener('input', function () { S.h = +this.value; update(); });
+function fromInput(el, key) { var v = Math.round(+el.value); if (!v) return; S[key] = v * 10; update(); }
+$('#w-in').addEventListener('input', function () { fromInput(this, 'w'); });
+$('#h-in').addEventListener('input', function () { fromInput(this, 'h'); });
+$('#w-in').addEventListener('blur', function () { this.value = Math.round(S.w / 10); });
+$('#h-in').addEventListener('blur', function () { this.value = Math.round(S.h / 10); });
+var lastH = 0;
+function fit() { if (window.parent === window) return; requestAnimationFrame(function () { var h = document.documentElement.scrollHeight; if (h !== lastH) { lastH = h; window.parent.postMessage({ type: 'db-height', h: h }, '*'); } }); }
+window.addEventListener('resize', fit);
+renderAll(); renderSpec();
+
+/* ===== Projektliste: Positionen gehen an die Website, damit die Liste beim Wechsel zwischen den Rechnern erhalten bleibt ===== */
+(function () {
+  if (window.parent === window) return;
+  var CALC = 'fenster', ready = false, M = {"fenster": "Fenster", "schiebetuer": "Schiebetür", "haustuer": "Haustür"};
+  function sync() {
+    if (!ready) return;
+    var sum = 0, lines = SPEC.map(function (it) { sum += it.qty * it.price; return it.qty + ' × ' + it.label + ' – ' + it.detail + ' – ' + fmt(it.qty * it.price); });
+    var what = SPEC.map(function (it) { return M[it.prod] || M._; }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
+    window.parent.postMessage({ type: 'db-spec', calc: CALC, items: JSON.parse(JSON.stringify(SPEC)), sum: sum, lines: lines, what: what }, '*');
+  }
+  var base = renderSpec;
+  renderSpec = function () { base.apply(this, arguments); sync(); };
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || d.type !== 'db-spec-restore' || d.calc !== CALC) return;
+    ready = true;
+    if (Array.isArray(d.items)) { SPEC = d.items; EDIT = null; renderSpec(); }
+  });
+  window.parent.postMessage({ type: 'db-ready', calc: CALC }, '*');
+})();
+
+var UXT = {"de": {"more": "Weitere Optionen", "less": "Weniger Optionen", "unknown": "Maße unbekannt? Foto per WhatsApp schicken", "wa_text": "Hallo D&B, ich kenne meine Maße nicht. Ich schicke Ihnen Fotos.", "trust": "<b>★ 5,0</b> bei Google · Aufmaß kostenlos · Fixpreis vor Auftrag", "p_klein": "Klein", "p_std": "Standardfenster", "p_gross": "Großes Fenster", "p_btuer": "Balkontür", "p_ttuer": "Terrassentür", "p_st": "Standard", "p_breit": "Breit", "p_3": "Mittel", "p_4": "Groß", "p_5": "Sehr groß", "p_balk": "Balkon", "p_terr": "Terrasse", "p_lang": "Lang"}, "en": {"more": "More options", "less": "Fewer options", "unknown": "Sizes unknown? Send a photo via WhatsApp", "wa_text": "Hello D&B, I do not know my sizes. I will send you photos.", "trust": "<b>★ 5.0</b> on Google · free measurement · fixed price before you order", "p_klein": "Small", "p_std": "Standard window", "p_gross": "Large window", "p_btuer": "Balcony door", "p_ttuer": "Patio door", "p_st": "Standard", "p_breit": "Wide", "p_3": "Medium", "p_4": "Large", "p_5": "Very large", "p_balk": "Balcony", "p_terr": "Terrace", "p_lang": "Long"}, "ru": {"more": "Дополнительные параметры", "less": "Скрыть параметры", "unknown": "Не знаете размеры? Пришлите фото в WhatsApp", "wa_text": "Здравствуйте, D&B! Я не знаю размеров, пришлю фото.", "trust": "<b>★ 5,0</b> в Google · замер бесплатно · фиксированная цена до заказа", "p_klein": "Маленькое", "p_std": "Обычное окно", "p_gross": "Большое окно", "p_btuer": "Балконная дверь", "p_ttuer": "Дверь на террасу", "p_st": "Стандарт", "p_breit": "Широкая", "p_3": "Средняя", "p_4": "Большая", "p_5": "Очень большая", "p_balk": "Балкон", "p_terr": "Терраса", "p_lang": "Длинное"}};
+window.UXCFG = {
+  calc: 'fenster', unit: 'cm',
+  sizeHost: function () { return document.querySelector('#n-size') && document.querySelector('#n-size').parentNode.querySelector('.dims'); },
+  presets: function () { return ({
+    fenster: [{ k: 'p_klein', v: [60, 90] }, { k: 'p_std', v: [120, 150] }, { k: 'p_gross', v: [180, 150] }, { k: 'p_btuer', v: [90, 220] }],
+    schiebetuer: [{ k: 'p_3', v: [300, 220] }, { k: 'p_4', v: [400, 220] }, { k: 'p_5', v: [500, 230] }],
+    haustuer: [{ k: 'p_st', v: [100, 210] }, { k: 'p_breit', v: [120, 220] }] })[S.prod]; },
+  cur: function () { return [S.w / 10, S.h / 10]; },
+  set: function (v) { S.w = v[0] * 10; S.h = v[1] * 10; renderAll(); },
+  adv: function () { var c = document.getElementById('seg-col'), g = document.getElementById('st-glass'); return [c && c.closest('.step'), g && !g.hidden ? g : null]; }
+};
+/* ===== Bedienkomfort: Maß-Vorschläge, weitere Optionen eingeklappt, Vertrauenszeile, Live-Preis an die Website ===== */
+(function () {
+  var C = window.UXCFG; if (!C) return;
+  var L = (typeof LANG !== 'undefined' && UXT[LANG]) ? LANG : 'de', U = UXT[L], open = false, lastLive = '';
+  function el(h) { var d = document.createElement('div'); d.innerHTML = h; return d.firstChild; }
+  function decorate() {
+    /* 1) Maß-Vorschläge + „Maße unbekannt?“ */
+    var host = C.sizeHost(), list = C.presets();
+    var old = document.getElementById('ux-pre'); if (old) old.remove();
+    if (host && list && list.length) {
+      var cur = C.cur(), box = el('<div class="ux-pre" id="ux-pre"></div>');
+      list.forEach(function (p) {
+        var b = document.createElement('button'); b.type = 'button';
+        var on = p.v.every(function (v, i) { return Math.round(cur[i]) === v; });
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.innerHTML = '<b>' + (U[p.k] || p.k) + '</b><small>' + p.v.map(function (v) { return C.fmtDim ? C.fmtDim(v) : v; }).join(' × ') + (C.unit ? ' ' + (L === 'ru' ? ({ cm: 'см', m: 'м' })[C.unit] : C.unit) : '') + '</small>';
+        b.dataset.v = p.v.join(',');
+        b.addEventListener('click', function () { C.set(p.v); });
+        box.appendChild(b);
+      });
+      var wa = 'https://wa.me/436767202149?text=' + encodeURIComponent(U.wa_text);
+      box.appendChild(el('<a class="ux-unk" href="' + wa + '" target="_blank" rel="noopener">' + U.unknown + '</a>'));
+      host.parentNode.insertBefore(box, host);
+    }
+    /* 2) Weitere Optionen einklappen */
+    var adv = C.adv().filter(Boolean), tg = document.getElementById('ux-adv'); if (tg) tg.remove();
+    if (adv.length) {
+      var sum = adv.map(function (s) { var p = s.querySelector('[aria-pressed="true"]'); return p ? p.textContent.trim() : ''; }).filter(Boolean).join(' · ');
+      tg = el('<button type="button" class="ux-adv" id="ux-adv" aria-expanded="' + open + '"><span><b>' + (open ? U.less : U.more) + '</b>' + (open ? '' : '<small>' + sum + '</small>') + '</span><i aria-hidden="true">' + (open ? '−' : '+') + '</i></button>');
+      tg.addEventListener('click', function () { open = !open; decorate(); fit && fit(); });
+      adv[0].parentNode.insertBefore(tg, adv[0]);
+      adv.forEach(function (s) { s.classList.toggle('ux-hide', !open); });
+    }
+    /* 3) Vertrauenszeile unter dem Preis */
+    var disc = document.getElementById('disc');
+    if (disc && !document.getElementById('ux-trust')) disc.parentNode.insertBefore(el('<p class="ux-trust" id="ux-trust">' + U.trust + '</p>'), disc);
+    live();
+  }
+  function markPresets() {
+    var cur = C.cur();
+    [].forEach.call(document.querySelectorAll('#ux-pre button'), function (b) {
+      var v = b.dataset.v.split(',').map(Number);
+      b.setAttribute('aria-pressed', v.every(function (x, i) { return Math.round(cur[i]) === x; }) ? 'true' : 'false');
+    });
+  }
+  /* Live-Preis für die Leiste auf der Website */
+  function recCard() {
+    var r = document.querySelector('#res .tier.rec');
+    if (r) return r;
+    var all = [].slice.call(document.querySelectorAll('#res .tier')).filter(function (x) { var b = x.querySelector('button'); return b && !b.disabled; });
+    return all[0] || null;
+  }
+  function live() {
+    markPresets();
+    if (window.parent === window) return;
+    requestAnimationFrame(function () {
+      var r = recCard(), st = document.getElementById('res'); st = st && (st.closest('.step') || st);
+      var pr = r && r.querySelector('.price'), price = pr ? (pr.childNodes[0].textContent || '').trim() : '';
+      var box = st ? st.getBoundingClientRect() : { top: 0, bottom: 0 };
+      var msg = { type: 'db-live', calc: C.calc, ok: !!(r && price), name: r ? r.querySelector('.name').textContent : '', price: price, resTop: box.top + window.scrollY, resBottom: box.bottom + window.scrollY };
+      var key = JSON.stringify(msg); if (key === lastLive) return; lastLive = key;
+      window.parent.postMessage(msg, '*');
+    });
+  }
+  var res = document.getElementById('res'); if (res) new MutationObserver(live).observe(res, { childList: true, subtree: true, characterData: true });
+  window.addEventListener('resize', live);
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || d.type !== 'db-cmd' || d.calc !== C.calc) return;
+    if (d.cmd === 'add') { var r = recCard(), b = r && r.querySelector('button'); if (b && !b.disabled) b.click(); }
+  });
+  var base = renderAll; renderAll = function () { base.apply(this, arguments); decorate(); };
+  decorate();
+})();
+</script>
+</body>
+</html>

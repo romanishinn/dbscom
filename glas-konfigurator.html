@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Glas-Preisrechner D&amp;B</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+:root { --bg:#eef0f1; --panel:#fff; --ink:#1c2226; --muted:#5b666e; --line:#d6dadd; --accent:#2c6a86; --accent-soft:#e1edf2; --gelb:#f5c518; --gelb-ink:#1c1c1c;
+  --f-display:"Archivo","Geologica","Helvetica Neue",Arial,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; color-scheme:light; }
+* { box-sizing:border-box; } html,body { margin:0; } [hidden] { display:none !important; }
+body { background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.45; }
+.app { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:14px; padding:16px; }
+@media (max-width:860px) { .app { grid-template-columns:1fr; padding:10px; } .pic { display:none !important; } }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:18px; min-width:0; }
+h1 { font-family:var(--f-display); font-size:20px; margin:0 0 2px; letter-spacing:-.01em; }
+.sub { color:var(--muted); font-size:13px; margin:0 0 6px; }
+.step { display:grid; grid-template-columns:34px 1fr; gap:12px; padding:14px 0; border-top:1px solid var(--line); align-items:start; }
+.step:first-of-type { border-top:0; }
+.step i { width:30px; height:30px; border-radius:50%; background:var(--gelb); color:var(--gelb-ink); font:700 14px var(--f-body); font-style:normal; display:grid; place-items:center; }
+.step h2 { font-family:var(--f-display); font-size:15px; margin:4px 0 8px; }
+.seg { display:flex; gap:8px; flex-wrap:wrap; }
+.seg button { font:inherit; font-size:14px; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.seg button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); font-weight:600; }
+/* Produktwahl mit Bild */
+.prods { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.prods button { position:relative; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:0; cursor:pointer; overflow:hidden; text-align:left; display:grid; grid-template-rows:auto 1fr; transition:border-color .2s, box-shadow .2s, transform .2s; }
+.prods button:hover { border-color:#9fb0ba; transform:translateY(-2px); box-shadow:0 10px 22px -14px rgba(28,34,38,.45); }
+.prods .im { display:grid; place-items:center; aspect-ratio:4/3; background:radial-gradient(120% 90% at 50% 20%, #fbfcfc 0%, #e6eaec 70%, #dde2e5 100%); }
+.prods .im svg { width:86%; height:auto; display:block; }
+.prods .tx { padding:9px 12px 11px; display:grid; gap:1px; }
+.prods .tx b { font-family:var(--f-display); font-size:15px; letter-spacing:-.01em; }
+.prods .tx small { color:var(--muted); font-size:12px; line-height:1.3; }
+.prods button[aria-pressed="true"] { border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink); }
+.prods button[aria-pressed="true"]::after { content:"✓"; position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:50%; background:var(--gelb); color:var(--gelb-ink); font:700 13px/24px var(--f-body); text-align:center; }
+@media (max-width:520px) { .prods { gap:6px; } .prods .tx { padding:7px 8px 9px; } .prods .tx b { font-size:13.5px; } .prods .tx small { display:none; } }
+.seg button i.c { width:16px; height:16px; border-radius:50%; border:1px solid rgba(0,0,0,.15); display:inline-block; }
+.types { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
+.type { border:1px solid var(--line); border-radius:8px; background:transparent; padding:8px 6px 6px; cursor:pointer; display:grid; gap:4px; justify-items:center; font:500 12px var(--f-body); color:var(--ink); text-align:center; }
+.type[aria-pressed="true"] { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); background:var(--accent-soft); }
+.type svg { width:72px; height:56px; }
+.fields { margin-bottom:10px; }
+.dims { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.dim label { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--muted); margin-bottom:4px; }
+.dim label .num { display:inline-flex; align-items:center; gap:4px; font-family:var(--f-mono); color:var(--ink); }
+.dim label input { width:62px; font:500 15px var(--f-mono); color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:4px 6px; text-align:right; }
+.dim label input:focus-visible, .spec input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+input[type=range] { width:100%; accent-color:var(--accent); }
+.dim small { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; }
+.res { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px; }
+@media (max-width:620px) { .res { grid-template-columns:1fr; } }
+.tier { border:1px solid var(--line); border-radius:8px; padding:12px 14px; display:grid; gap:4px; background:var(--panel); align-content:start; }
+.tier.rec { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+.tier .lvl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); font-weight:700; }
+.tier .name { font-weight:600; }
+.tier .sys { color:var(--muted); font-size:12.5px; }
+.tier .price { font-family:var(--f-display); font-size:24px; letter-spacing:-.02em; margin-top:4px; }
+.tier .price small { font:400 12px var(--f-body); color:var(--muted); margin-left:4px; }
+.tier button { margin-top:8px; font:600 13px var(--f-body); border:0; border-radius:999px; padding:9px 12px; cursor:pointer; background:var(--ink); color:#fff; }
+.tier.rec button { background:var(--gelb); color:var(--gelb-ink); }
+.disc { font-size:12px; color:var(--muted); margin:12px 0 0; line-height:1.4; }
+.hint { background:#fbf0e2; color:#a3621b; border-radius:6px; padding:8px 10px; font-size:12.5px; margin-top:10px; }
+/* Spezifikation */
+.spec { margin-top:4px; }
+.spec table { width:100%; border-collapse:collapse; font-size:13.5px; }
+.spec th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; padding:6px 6px; border-bottom:1px solid var(--line); }
+.spec td { padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+.spec td.n { font-family:var(--f-mono); white-space:nowrap; text-align:right; }
+.spec td .d { color:var(--muted); font-size:12px; }
+.spec input.q { width:52px; font:500 14px var(--f-mono); text-align:center; border:1px solid var(--line); border-radius:4px; padding:4px; background:var(--bg); }
+.spec .act { white-space:nowrap; }
+.spec .act button { font:500 12px var(--f-body); border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:4px 10px; cursor:pointer; margin-left:4px; }
+.spec tfoot td { border:0; padding-top:12px; }
+.spec tfoot b { font-family:var(--f-display); font-size:22px; letter-spacing:-.02em; }
+.spec .empty { color:var(--muted); font-size:13px; }
+.btn { font:600 15px var(--f-body); border:0; border-radius:999px; padding:12px 20px; cursor:pointer; background:var(--gelb); color:var(--gelb-ink); display:inline-flex; align-items:center; gap:8px; }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.pic { display:grid; align-content:start; gap:10px; position:sticky; top:16px; }
+.view { background:linear-gradient(180deg,#f7f8f9,#e9ecee); border:1px solid var(--line); border-radius:6px; padding:16px; display:grid; place-items:center; min-height:300px; }
+.view svg { max-width:100%; height:auto; }
+.fact { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px 10px; }
+.fact span { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); display:block; }
+.fact b { font-family:var(--f-mono); font-weight:500; }
+#steps .step:first-of-type { border-top:1px solid var(--line); }
+.lensum { margin:10px 0 0; font-size:13.5px; color:var(--muted); } .lensum b { color:var(--ink); font-family:var(--f-mono); font-weight:500; }
+.prods { grid-template-columns:repeat(4,minmax(0,1fr)); }
+@media (max-width:620px) { .prods { grid-template-columns:repeat(2,minmax(0,1fr)); } .prods .tx small { display:block !important; } }
+.dims { grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); }
+/* ===== Mobil: volle Breite, Nummer neben der Überschrift, Produkte als Liste ===== */
+@media (max-width:560px) {
+  .app { padding:0; gap:0; }
+  .panel { border:0; border-radius:0; padding:18px 16px 22px; }
+  h1 { font-size:22px; }
+  .step { grid-template-columns:26px minmax(0,1fr); column-gap:10px; row-gap:12px; padding:18px 0; }
+  .step > div { display:contents; }
+  .step > div > * { grid-column:1 / -1; min-width:0; }
+  .step > div > h2 { grid-column:2; margin:0; align-self:center; font-size:16px; }
+  .step i { width:26px; height:26px; font-size:13px; }
+  .prods { grid-template-columns:minmax(0,1fr) !important; gap:8px; }
+  .prods button { grid-template-columns:96px minmax(0,1fr); grid-template-rows:none; align-items:stretch; border-radius:12px; }
+  .prods button:hover { transform:none; box-shadow:none; }
+  .prods .im { aspect-ratio:auto; min-height:76px; height:100%; }
+  .prods .im svg { width:92%; }
+  .prods .tx { padding:10px 40px 10px 14px; align-content:center; }
+  .prods .tx b { font-size:15.5px !important; }
+  .prods .tx small { display:block !important; font-size:12.5px; }
+  .prods button[aria-pressed="true"]::after { top:50%; margin-top:-12px; right:12px; }
+  .dims { grid-template-columns:minmax(0,1fr); gap:18px; }
+  .dim label { gap:10px; }
+  .dim label > span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .dim label input { width:72px; font-size:16px; }
+  .seg { gap:8px; }
+  .seg button { text-align:left; max-width:100%; padding:9px 14px; min-height:40px; }
+  .res { grid-template-columns:minmax(0,1fr) !important; }
+  .spec table, .spec thead, .spec tbody, .spec tfoot, .spec tr { display:block; }
+  .spec thead { display:none; }
+  .spec tbody tr { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:6px 10px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .spec tbody td { display:block; padding:0; border:0; }
+  .spec tbody td:first-child { grid-column:1 / -1; }
+  .spec tbody td:nth-child(3) { color:var(--muted); text-align:left; }
+  .spec .act button { margin:6px 6px 0 0; padding:6px 12px; font-size:12.5px; }
+  .spec tfoot { display:block; }
+  .spec tfoot tr { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-top:14px; }
+  .spec tfoot td { display:block; padding:0; text-align:left !important; }
+  .btn { width:100%; justify-content:center; }
+}
+/* ===== Bedienkomfort ===== */
+.ux-pre { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.ux-pre button { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:7px 12px; cursor:pointer; display:grid; gap:1px; text-align:left; line-height:1.2; }
+.ux-pre button b { font-size:13.5px; }
+.ux-pre button small { font-size:12px; color:var(--muted); font-family:var(--f-mono); }
+.ux-pre button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); }
+.ux-unk { align-self:center; font-size:13.5px; color:var(--accent); text-decoration:underline; text-underline-offset:3px; margin-left:4px; }
+.ux-adv { width:100%; display:flex; justify-content:space-between; align-items:center; gap:12px; font:inherit; color:var(--ink); background:var(--bg); border:1px dashed var(--line); border-radius:10px; padding:12px 14px; margin:6px 0; cursor:pointer; text-align:left; }
+.ux-adv span { display:grid; gap:2px; min-width:0; }
+.ux-adv b { font-size:14.5px; }
+.ux-adv small { font-size:12.5px; color:var(--muted); }
+.ux-adv i { font-style:normal; font-size:20px; line-height:1; color:var(--muted); }
+.ux-hide { display:none !important; }
+.ux-trust { margin:12px 0 0; font-size:13px; color:var(--ink); }
+
+@media (max-width:560px) { .ux-pre button { flex:1 1 calc(50% - 4px); } .ux-unk { flex-basis:100%; margin:2px 0 0; } }
+
+/* ===== Markenfarben Design & Building Solutions ===== */
+:root { --bg:#efeeeb; --panel:#fff; --ink:#110f0d; --muted:#5f5850; --line:#dcd7d0; --accent:#796b53; --accent-soft:#eee8de; --gelb:#796b53; --gelb-ink:#fff;
+  --f-display:"Outfit","Geologica","Helvetica Neue",Arial,sans-serif; --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif; }
+.ux-trust b { color:var(--accent); }
+.hint-sw { color:var(--gelb-ink) !important; }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <section class="panel">
+    <h1 data-t="title">Was kostet Glas?</h1>
+    <p class="sub" data-t="subtitle"></p>
+    <div class="step"><i>1</i><div><h2 data-t="s_product">Produkt</h2><div class="prods" id="seg-prod" role="group"></div></div></div>
+    <div id="steps"></div>
+    <div class="step"><i>€</i><div><h2 id="res-title"></h2><div class="res" id="res"></div><p class="disc" id="disc"></p></div></div>
+    <div class="step"><i>≡</i><div><h2 data-t="s_spec">Ihre Spezifikation</h2>
+      <div class="spec" id="spec"></div>
+      <p class="disc" data-t="spec_hint"></p>
+      <p style="margin:14px 0 0"><button type="button" class="btn" id="send" data-t="send">Angebot anfordern</button></p>
+    </div></div>
+  </section>
+  <aside class="pic">
+    <div class="view"><svg id="draw" viewBox="0 0 300 300" role="img" aria-label=""></svg></div>
+    <div class="fact"><span data-t="f_dim">Maß</span><b id="f-dim"></b></div>
+    <div class="fact"><span data-t="f_sel">Ausführung</span><b id="f-sel"></b></div>
+  </aside>
+</div>
+<script>
+/* ============ PREISMODELL (Richtpreise inkl. 20 % MwSt. und Lieferung in Wien, ohne Montage) ============ */
+var P = {
+  gel: { tiers: [
+      { id: 'core', lvl: 'Standard', name: 'BALARDO core', sys: 'Glassline · Klemmprofil, ohne Bohren', m: 390 },
+      { id: 'hybrid', lvl: 'Nachrüsten', name: 'BALARDO hybrid', sys: 'Glassline · stufenlos justierbar', m: 449 },
+      { id: 'aqua', lvl: 'Mit Entwässerung', name: 'BALARDO aqua control', sys: 'Glassline · geprüft dicht (ETA)', m: 539 } ],
+    corner: 120, demont: 45, minLen: 300 },
+  franz: { tiers: [ { id: 'balmero', lvl: 'Glas', name: 'BALMERO', sys: 'Glassline · am Fenster montiert', base: 590, ref: 1200 } ], laibung: 60 },
+  wind: { tiers: [ { id: 'davento', lvl: 'Glas', name: 'DAVENTO', sys: 'Glassline · mit Statik', m: 449 } ], fund: 65, minLen: 200 },
+  canopy: { tiers: [ { id: 'canopy', lvl: 'Glas', name: 'CANOPY', sys: 'Glassline · europäisch geprüft (ETA)', base: 1890, ref: 1.5 } ] }
+};
+var F = {
+  height: { h100: 1, h110: 1.08 },
+  mount: { boden: 1, stirn: 1.12 },
+  glass: { klar: 1, satin: 1.12, grau: 1.15, extra: 1.10 },
+  rail: { rund: 0, eckig: 18, alu: 12 },
+  windH: { 120: 1, 150: 1.18, 180: 1.36, 210: 1.55 },
+  canD: {}
+};
+
+/* ============ TEXTE ============ */
+var LANG = (new URLSearchParams(location.search).get('lang') || 'de').slice(0, 2);
+var T = {
+  de: { title: 'Was kostet Glas?', subtitle: 'Form und Maße angeben, und Sie sehen sofort den Richtpreis.',
+    s_product: 'Produkt', s_shape: 'Form', s_len: 'Länge', s_ground: 'Untergrund', s_mount: 'Befestigung', s_height: 'Höhe', s_glass: 'Glas', s_rail: 'Handlauf', s_extra: 'Zusatz', s_size: 'Größe', s_spec: 'Ihre Spezifikation',
+    p_gel: 'Glasgeländer', p_franz: 'Französischer Balkon', p_wind: 'Windschutz', p_canopy: 'Glasvordach',
+    pd_gel: 'Balkon, Terrasse, Stiege', pd_franz: 'Vor bodentiefen Fenstern', pd_wind: 'Terrasse und Garten', pd_canopy: 'Über der Haustür',
+    sh_line: 'Gerade', sh_l: 'Über Eck', sh_u: 'U-Form', seg_a: 'Seite A', seg_b: 'Seite B', seg_c: 'Seite C', total_len: 'Gesamt',
+    gr_new: 'Eben, mit Gefälle', gr_old: 'Alter Balkon, uneben', gr_flat: 'Ohne Gefälle, Wasser steht',
+    mo_boden: 'Auf dem Boden', mo_stirn: 'Seitlich an der Platte', h_h100: '1,00 m', h_h110: '1,10 m (ab 12 m Höhe)',
+    g_klar: 'Klar', g_satin: 'Satiniert', g_grau: 'Grau getönt', g_extra: 'Extraklar',
+    r_rund: 'Edelstahl rund', r_eckig: 'Edelstahl eckig', r_alu: 'Alu Anthrazit',
+    x_demont: 'Altes Geländer entfernen', x_none: 'Neu, nichts zu entfernen',
+    f_width: 'Fensterbreite', mo_frame: 'Am Fensterrahmen', mo_laibung: 'In der Laibung',
+    w_len: 'Länge', w_h: 'Höhe', mo_terr: 'Auf Terrasse oder Beton', mo_fund: 'Im Garten, mit Fundament',
+    c_w: 'Breite', c_d: 'Tiefe',
+    res_gel: 'Ihr Richtpreis', res_franz: 'Ihr Richtpreis pro Fenster', res_wind: 'Ihr Richtpreis', res_canopy: 'Ihr Richtpreis pro Vordach',
+    rec: 'Empfehlung', rec_why_new: 'passt zu Ihrem Untergrund', choose: 'In die Liste', per_m: '{p} pro Laufmeter',
+    min_hint: 'Unter {m} m rechnen wir eine Mindestlänge von {m} m (Anfahrt, Zuschnitt).', h110_hint: 'In Österreich gilt ab 12 m Absturzhöhe 1,10 m (OIB-Richtlinie 4).',
+    disc: 'Richtpreis inkl. 20 % MwSt., Lieferung und Statik in Wien und Umgebung, ohne Montage. Den Fixpreis nennen wir nach dem kostenlosen Aufmaß.',
+    empty: 'Noch keine Position. Wählen Sie oben eine Ausführung und tippen Sie auf „In die Liste“.', th_pos: 'Position', th_qty: 'Menge', th_price: 'Preis', th_sum: 'Summe', total: 'Gesamt, Richtpreis', edit: 'Bearbeiten', del: 'Entfernen',
+    spec_hint: 'Menge direkt in der Tabelle ändern. „Bearbeiten“ lädt die Position zurück in den Rechner.', send: 'Angebot anfordern',
+    msg_head: 'Anfrage aus dem Glas-Preisrechner:', msg_total: 'Summe Richtpreis: {sum}', f_dim: 'Maß', f_sel: 'Ausführung', corners: '{n} Ecke(n)', m: 'm' },
+  en: { title: 'What does glass cost?', subtitle: 'Enter shape and size and you instantly see the guide price.',
+    s_product: 'Product', s_shape: 'Shape', s_len: 'Length', s_ground: 'Surface', s_mount: 'Fixing', s_height: 'Height', s_glass: 'Glass', s_rail: 'Handrail', s_extra: 'Extra', s_size: 'Size', s_spec: 'Your specification',
+    p_gel: 'Glass railing', p_franz: 'French balcony', p_wind: 'Wind screen', p_canopy: 'Glass canopy',
+    pd_gel: 'Balcony, terrace, stairs', pd_franz: 'For floor-length windows', pd_wind: 'Terrace and garden', pd_canopy: 'Over the front door',
+    sh_line: 'Straight', sh_l: 'Corner', sh_u: 'U-shape', seg_a: 'Side A', seg_b: 'Side B', seg_c: 'Side C', total_len: 'Total',
+    gr_new: 'Level, with fall', gr_old: 'Old balcony, uneven', gr_flat: 'No fall, water stands',
+    mo_boden: 'On the floor', mo_stirn: 'On the slab edge', h_h100: '1.00 m', h_h110: '1.10 m (from 12 m drop)',
+    g_klar: 'Clear', g_satin: 'Frosted', g_grau: 'Grey tinted', g_extra: 'Low-iron',
+    r_rund: 'Stainless, round', r_eckig: 'Stainless, square', r_alu: 'Alu anthracite',
+    x_demont: 'Remove old railing', x_none: 'New, nothing to remove',
+    f_width: 'Window width', mo_frame: 'On the window frame', mo_laibung: 'In the reveal',
+    w_len: 'Length', w_h: 'Height', mo_terr: 'On terrace or concrete', mo_fund: 'In the garden, with foundation',
+    c_w: 'Width', c_d: 'Depth',
+    res_gel: 'Your guide price', res_franz: 'Your guide price per window', res_wind: 'Your guide price', res_canopy: 'Your guide price per canopy',
+    rec: 'Recommended', rec_why_new: 'suits your surface', choose: 'Add to list', per_m: '{p} per metre',
+    min_hint: 'Below {m} m we charge a minimum length of {m} m (travel, cutting).', h110_hint: 'In Austria, 1.10 m applies from a drop height of 12 m (OIB guideline 4).',
+    disc: 'Guide price incl. 20% VAT, delivery and structural calculation in Vienna and surroundings, excluding installation. We quote the fixed price after the free measurement.',
+    empty: 'No items yet. Choose a version above and tap “Add to list”.', th_pos: 'Item', th_qty: 'Qty', th_price: 'Price', th_sum: 'Total', total: 'Total guide price', edit: 'Edit', del: 'Remove',
+    spec_hint: 'Change the quantity in the table. “Edit” loads the item back into the calculator.', send: 'Request a quote',
+    msg_head: 'Request from the glass price calculator:', msg_total: 'Total guide price: {sum}', f_dim: 'Size', f_sel: 'Version', corners: '{n} corner(s)', m: 'm' },
+  ru: { title: 'Сколько стоит стекло?', subtitle: 'Укажите форму и размеры — и сразу увидите ориентировочную цену.',
+    s_product: 'Продукт', s_shape: 'Форма', s_len: 'Длина', s_ground: 'Основание', s_mount: 'Крепление', s_height: 'Высота', s_glass: 'Стекло', s_rail: 'Поручень', s_extra: 'Дополнительно', s_size: 'Размер', s_spec: 'Ваша спецификация',
+    p_gel: 'Стеклянные перила', p_franz: 'Французский балкон', p_wind: 'Ветрозащита', p_canopy: 'Стеклянный козырёк',
+    pd_gel: 'Балкон, терраса, лестница', pd_franz: 'Перед окнами в пол', pd_wind: 'Терраса и сад', pd_canopy: 'Над входной дверью',
+    sh_line: 'Прямой', sh_l: 'Угловой', sh_u: 'П-образный', seg_a: 'Сторона A', seg_b: 'Сторона B', seg_c: 'Сторона C', total_len: 'Всего',
+    gr_new: 'Ровное, с уклоном', gr_old: 'Старый балкон, неровный', gr_flat: 'Без уклона, стоит вода',
+    mo_boden: 'Сверху на пол', mo_stirn: 'Сбоку на торец плиты', h_h100: '1,00 м', h_h110: '1,10 м (от 12 м высоты)',
+    g_klar: 'Прозрачное', g_satin: 'Матовое', g_grau: 'Серое тонированное', g_extra: 'Осветлённое',
+    r_rund: 'Нержавейка, круглый', r_eckig: 'Нержавейка, квадратный', r_alu: 'Алюминий, антрацит',
+    x_demont: 'Демонтаж старых перил', x_none: 'Новые, демонтаж не нужен',
+    f_width: 'Ширина окна', mo_frame: 'На раму окна', mo_laibung: 'В оконный проём',
+    w_len: 'Длина', w_h: 'Высота', mo_terr: 'На террасу или бетон', mo_fund: 'В саду, с фундаментом',
+    c_w: 'Ширина', c_d: 'Вылет',
+    res_gel: 'Ориентировочная цена', res_franz: 'Ориентировочная цена за окно', res_wind: 'Ориентировочная цена', res_canopy: 'Ориентировочная цена за козырёк',
+    rec: 'Рекомендуем', rec_why_new: 'подходит к вашему основанию', choose: 'В список', per_m: '{p} за погонный метр',
+    min_hint: 'Если меньше {m} м, считаем минимальную длину {m} м (выезд, раскрой).', h110_hint: 'В Австрии от 12 м высоты падения нужна высота 1,10 м (OIB-Richtlinie 4).',
+    disc: 'Ориентировочная цена вкл. 20 % НДС, доставку и статический расчёт в Вене и окрестностях, без монтажа. Фиксированную цену назовём после бесплатного замера.',
+    empty: 'Пока пусто. Выберите вариант выше и нажмите «В список».', th_pos: 'Позиция', th_qty: 'Кол-во', th_price: 'Цена', th_sum: 'Сумма', total: 'Итого, ориентировочно', edit: 'Изменить', del: 'Удалить',
+    spec_hint: 'Количество можно менять прямо в таблице. «Изменить» вернёт позицию в калькулятор.', send: 'Запросить предложение',
+    msg_head: 'Запрос из калькулятора стекла:', msg_total: 'Итого ориентировочно: {sum}', f_dim: 'Размер', f_sel: 'Исполнение', corners: 'углов: {n}', m: 'м' }
+};
+if (!T[LANG]) LANG = 'de';
+document.documentElement.lang = LANG;
+function t(k, v) { var s = T[LANG][k] != null ? T[LANG][k] : (T.de[k] != null ? T.de[k] : k); if (v) Object.keys(v).forEach(function (x) { s = s.split('{' + x + '}').join(v[x]); }); return s; }
+var $ = function (q) { return document.querySelector(q); };
+var NF = new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+function fmt(n) { return NF.format(Math.round(n / 10) * 10); }
+function mm(cm) { return (cm / 100).toLocaleString(LANG === 'en' ? 'en-GB' : 'de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + t('m'); }
+
+/* ============ ZUSTAND ============ */
+var S = { prod: 'gel', shape: 'line', a: 600, b: 300, c: 300, ground: 'new', mount: 'boden', height: 'h100', glass: 'klar', rail: 'rund', demont: 'none',
+  fw: 120, fmount: 'frame', wl: 400, wh: 180, wmount: 'terr', cw: 150, cd: 120 };
+var SPEC = [], EDIT = null;
+
+/* ============ PREIS ============ */
+function gelLen() { return S.a + (S.shape !== 'line' ? S.b : 0) + (S.shape === 'u' ? S.c : 0); }
+function corners() { return S.shape === 'line' ? 0 : S.shape === 'l' ? 1 : 2; }
+function price(tr) {
+  var p = P[S.prod], g = F.glass[S.glass];
+  if (S.prod === 'gel') {
+    var L = Math.max(gelLen(), p.minLen) / 100;
+    var perM = tr.m * F.height[S.height] * F.mount[S.mount] * g + F.rail[S.rail];
+    return L * perM + corners() * p.corner + (S.demont === 'yes' ? L * p.demont : 0);
+  }
+  if (S.prod === 'franz') return tr.base * (0.55 + 0.45 * S.fw * 10 / tr.ref) * g + (S.fmount === 'laibung' ? p.laibung : 0);
+  if (S.prod === 'wind') { var Lw = Math.max(S.wl, p.minLen) / 100; return Lw * (tr.m * F.windH[S.wh] * g + (S.wmount === 'fund' ? p.fund : 0)); }
+  var area = (S.cw / 100) * (S.cd / 100); /* Referenz 1,50 × 1,20 m = 1.890 € */
+  return tr.base * (0.5 + 0.5 * area / 1.8) * g;
+}
+function recId() { return S.ground === 'old' ? 'hybrid' : S.ground === 'flat' ? 'aqua' : 'core'; }
+
+/* ============ BILDER ============ */
+var DEFS = '<defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef4f7"/><stop offset=".55" stop-color="#cfdce3"/><stop offset="1" stop-color="#b4c6d0"/></linearGradient>' +
+  '<linearGradient id="pf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5257"/><stop offset="1" stop-color="#30363a"/></linearGradient>' +
+  '<linearGradient id="ph" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f4f6f7"/><stop offset="1" stop-color="#9aa3a9"/></linearGradient></defs>';
+function pane(x, y, w, h) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="url(#pg)" opacity=".92"/>' +
+  '<polygon points="' + (x + w * .2) + ',' + y + ' ' + (x + w * .42) + ',' + y + ' ' + (x + w * .1) + ',' + (y + h) + ' ' + x + ',' + (y + h) + ' ' + x + ',' + (y + h * .7) + '" fill="#fff" opacity=".35"/>'; }
+var PROD_ART = {
+  gel: '<svg viewBox="0 0 160 120" aria-hidden="true">' + DEFS + '<rect x="12" y="84" width="136" height="10" fill="url(#pf)"/>' +
+    pane(18, 46, 40, 38) + pane(60, 46, 40, 38) + pane(102, 46, 40, 38) + '<rect x="14" y="80" width="132" height="6" fill="#3b4246"/>' +
+    '<rect x="14" y="41" width="132" height="5" rx="2.5" fill="url(#ph)"/></svg>',
+  franz: '<svg viewBox="0 0 160 120" aria-hidden="true">' + DEFS + '<rect x="46" y="8" width="68" height="104" fill="url(#pf)"/><rect x="52" y="14" width="56" height="92" fill="#3b4246"/>' +
+    pane(57, 19, 46, 82) + '<rect x="40" y="62" width="80" height="44" fill="url(#pg)" opacity=".8" stroke="#8fa3ae" stroke-width="1"/>' +
+    '<rect x="38" y="60" width="4" height="48" fill="url(#ph)"/><rect x="118" y="60" width="4" height="48" fill="url(#ph)"/></svg>',
+  wind: '<svg viewBox="0 0 160 120" aria-hidden="true">' + DEFS + '<rect x="8" y="100" width="144" height="6" fill="#c8b9a2"/>' +
+    pane(16, 26, 40, 74) + pane(60, 26, 40, 74) + pane(104, 26, 40, 74) +
+    '<rect x="13" y="24" width="4" height="78" fill="url(#pf)"/><rect x="57" y="24" width="4" height="78" fill="url(#pf)"/><rect x="101" y="24" width="4" height="78" fill="url(#pf)"/><rect x="145" y="24" width="4" height="78" fill="url(#pf)"/></svg>',
+  canopy: '<svg viewBox="0 0 160 120" aria-hidden="true">' + DEFS + '<rect x="18" y="8" width="8" height="104" fill="#d9dee1"/>' +
+    '<rect x="56" y="44" width="46" height="68" fill="url(#pf)"/><rect x="61" y="49" width="36" height="63" fill="#3a4146"/><rect x="91" y="72" width="3" height="20" rx="1.5" fill="url(#ph)"/>' +
+    '<polygon points="40,30 140,30 146,36 46,36" fill="url(#pg)" stroke="#8fa3ae" stroke-width="1"/><rect x="40" y="26" width="6" height="12" fill="url(#pf)"/>' +
+    '<line x1="44" y1="28" x2="132" y2="31" stroke="#9aa3a9" stroke-width="1.4"/></svg>'
+};
+
+/* ============ UI ============ */
+function seg(host, items, cur, on) {
+  host.innerHTML = '';
+  items.forEach(function (it) {
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(it.id) === String(cur));
+    b.innerHTML = it.label; b.addEventListener('click', function () { on(it.id); }); host.appendChild(b);
+  });
+}
+function opts(keys, pre) { return keys.map(function (k) { return { id: k, label: t(pre + k) }; }); }
+function prodCards() {
+  var host = $('#seg-prod'); host.innerHTML = '';
+  Object.keys(P).forEach(function (k) {
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(k === S.prod));
+    b.innerHTML = '<span class="im">' + PROD_ART[k] + '</span><span class="tx"><b>' + t('p_' + k) + '</b><small>' + t('pd_' + k) + '</small></span>';
+    b.addEventListener('click', function () { if (S.prod === k) return; S.prod = k; EDIT = null; renderAll(); });
+    host.appendChild(b);
+  });
+}
+function slider(id, label, val, min, max, step, key) {
+  return '<div class="dim"><label><span>' + label + '</span><span class="num"><input type="number" data-in="' + key + '" value="' + val + '" step="1" inputmode="numeric"> cm</span></label>' +
+    '<input type="range" data-rg="' + key + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '"><small><span>' + min + ' cm</span><span>' + max + ' cm</span></small></div>';
+}
+var LIM = { a: [100, 2000], b: [50, 1000], c: [50, 1000], fw: [80, 250], wl: [100, 2000], cw: [120, 400] };
+function steps() {
+  var h = '', n = 2, p = S.prod;
+  function st(title, body, id) { return '<div class="step"' + (id ? ' id="' + id + '"' : '') + '><i>' + (n++) + '</i><div><h2>' + title + '</h2>' + body + '</div></div>'; }
+  if (p === 'gel') {
+    h += st(t('s_shape'), '<div class="seg" data-seg="shape"></div>');
+    var d = slider('a', t('seg_a'), S.a, LIM.a[0], LIM.a[1], 10, 'a');
+    if (S.shape !== 'line') d += slider('b', t('seg_b'), S.b, LIM.b[0], LIM.b[1], 10, 'b');
+    if (S.shape === 'u') d += slider('c', t('seg_c'), S.c, LIM.c[0], LIM.c[1], 10, 'c');
+    h += st(t('s_len'), '<div class="dims">' + d + '</div><p class="lensum" id="lensum"></p><div class="hint" id="hint" hidden></div>');
+    h += st(t('s_ground'), '<div class="seg" data-seg="ground"></div>');
+    h += st(t('s_mount'), '<div class="seg" data-seg="mount"></div>');
+    h += st(t('s_height'), '<div class="seg" data-seg="height"></div><div class="hint" id="hint-h" hidden></div>');
+    h += st(t('s_glass'), '<div class="seg" data-seg="glass"></div>');
+    h += st(t('s_rail'), '<div class="seg" data-seg="rail"></div>');
+    h += st(t('s_extra'), '<div class="seg" data-seg="demont"></div>');
+  } else if (p === 'franz') {
+    h += st(t('s_size'), '<div class="dims">' + slider('fw', t('f_width'), S.fw, LIM.fw[0], LIM.fw[1], 5, 'fw') + '</div>');
+    h += st(t('s_mount'), '<div class="seg" data-seg="fmount"></div>');
+    h += st(t('s_glass'), '<div class="seg" data-seg="glass"></div>');
+  } else if (p === 'wind') {
+    h += st(t('s_len'), '<div class="dims">' + slider('wl', t('w_len'), S.wl, LIM.wl[0], LIM.wl[1], 10, 'wl') + '</div><div class="hint" id="hint" hidden></div>');
+    h += st(t('s_height'), '<div class="seg" data-seg="wh"></div>');
+    h += st(t('s_mount'), '<div class="seg" data-seg="wmount"></div>');
+    h += st(t('s_glass'), '<div class="seg" data-seg="glass"></div>');
+  } else {
+    h += st(t('s_size'), '<div class="dims">' + slider('cw', t('c_w'), S.cw, LIM.cw[0], LIM.cw[1], 10, 'cw') + '</div>');
+    h += st(t('c_d'), '<div class="seg" data-seg="cd"></div>');
+    h += st(t('s_glass'), '<div class="seg" data-seg="glass"></div>');
+  }
+  $('#steps').innerHTML = h;
+  var SEGS = {
+    shape: opts(['line', 'l', 'u'], 'sh_').map(function (o) { o.id = o.id; return o; }),
+    ground: [{ id: 'new', label: t('gr_new') }, { id: 'old', label: t('gr_old') }, { id: 'flat', label: t('gr_flat') }],
+    mount: [{ id: 'boden', label: t('mo_boden') }, { id: 'stirn', label: t('mo_stirn') }],
+    height: [{ id: 'h100', label: t('h_h100') }, { id: 'h110', label: t('h_h110') }],
+    glass: opts(p === 'gel' ? ['klar', 'satin', 'grau', 'extra'] : ['klar', 'satin'], 'g_'),
+    rail: opts(['rund', 'eckig', 'alu'], 'r_'),
+    demont: [{ id: 'none', label: t('x_none') }, { id: 'yes', label: t('x_demont') }],
+    fmount: [{ id: 'frame', label: t('mo_frame') }, { id: 'laibung', label: t('mo_laibung') }],
+    wh: [120, 150, 180, 210].map(function (v) { return { id: v, label: (v / 100).toLocaleString('de-AT', { minimumFractionDigits: 2 }) + ' ' + t('m') }; }),
+    wmount: [{ id: 'terr', label: t('mo_terr') }, { id: 'fund', label: t('mo_fund') }],
+    cd: [90, 120, 150].map(function (v) { return { id: v, label: v + ' cm' }; })
+  };
+  if (S.prod !== 'gel' && ['klar', 'satin'].indexOf(S.glass) < 0) S.glass = 'klar';
+  document.querySelectorAll('[data-seg]').forEach(function (host) {
+    var k = host.dataset.seg;
+    seg(host, SEGS[k], S[k], function (id) { S[k] = typeof S[k] === 'number' ? +id : id; if (k === 'shape') steps(); else { host.querySelectorAll('button').forEach(function (b, i) { b.setAttribute('aria-pressed', String(SEGS[k][i].id) === String(S[k])); }); } update(); });
+  });
+  document.querySelectorAll('[data-rg]').forEach(function (r) {
+    var k = r.dataset.rg, inp = document.querySelector('[data-in="' + k + '"]');
+    r.addEventListener('input', function () { S[k] = +this.value; inp.value = S[k]; update(); });
+    inp.addEventListener('input', function () { var v = Math.round(+this.value); if (!v) return; S[k] = Math.min(LIM[k][1], Math.max(LIM[k][0], v)); r.value = S[k]; update(); });
+    inp.addEventListener('blur', function () { this.value = S[k]; });
+  });
+}
+function renderAll() {
+  prodCards(); steps(); update();
+  document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t); });
+}
+function update() {
+  var p = P[S.prod], tiers = p.tiers, rec = S.prod === 'gel' ? recId() : tiers[0].id;
+  $('#res-title').textContent = t('res_' + S.prod);
+  var res = $('#res'); res.innerHTML = ''; res.style.gridTemplateColumns = tiers.length > 1 ? '' : 'minmax(0, 360px)';
+  tiers.forEach(function (tr) {
+    var pr = price(tr), d = document.createElement('div'); d.className = 'tier' + (tr.id === rec && tiers.length > 1 ? ' rec' : '');
+    var perm = S.prod === 'gel' ? '<span class="sys">' + t('per_m', { p: fmt(pr / (Math.max(gelLen(), p.minLen) / 100)) }) + '</span>' : S.prod === 'wind' ? '<span class="sys">' + t('per_m', { p: fmt(pr / (Math.max(S.wl, p.minLen) / 100)) }) + '</span>' : '';
+    d.innerHTML = '<span class="lvl">' + tr.lvl + (tr.id === rec && tiers.length > 1 ? ' · ' + t('rec') : '') + '</span><span class="name">' + tr.name + '</span><span class="sys">' + tr.sys + '</span><span class="price">' + fmt(pr) + '</span>' + perm +
+      '<button type="button">' + t('choose') + '</button>';
+    d.querySelector('button').addEventListener('click', function () { choose(tr, pr); });
+    res.appendChild(d);
+  });
+  $('#disc').textContent = t('disc');
+  var hint = $('#hint');
+  if (hint) {
+    var L = S.prod === 'gel' ? gelLen() : S.wl, min = p.minLen;
+    hint.hidden = !(min && L < min); hint.textContent = t('min_hint', { m: (min / 100).toLocaleString('de-AT') });
+  }
+  var hh = $('#hint-h'); if (hh) { hh.hidden = S.height !== 'h110'; hh.textContent = t('h110_hint'); }
+  var ls = $('#lensum'); if (ls) ls.innerHTML = t('total_len') + ': <b>' + mm(gelLen()) + '</b>' + (corners() ? ' · ' + t('corners', { n: corners() }) : '');
+  $('#f-dim').textContent = dimText();
+  $('#f-sel').textContent = selText();
+  draw(); fit();
+}
+function dimText() {
+  if (S.prod === 'gel') return S.shape === 'line' ? mm(S.a) : [S.a, S.b, S.shape === 'u' ? S.c : 0].filter(Boolean).map(mm).join(' + ') + ' = ' + mm(gelLen());
+  if (S.prod === 'franz') return mm(S.fw);
+  if (S.prod === 'wind') return mm(S.wl) + ' × ' + mm(S.wh);
+  return mm(S.cw) + ' × ' + mm(S.cd);
+}
+function selText() {
+  var a = [t('p_' + S.prod)];
+  if (S.prod === 'gel') a.push(t('sh_' + S.shape), t('mo_' + S.mount), t('h_' + S.height), t('g_' + S.glass), t('r_' + S.rail), S.demont === 'yes' ? t('x_demont') : '');
+  if (S.prod === 'franz') a.push(t('mo_' + S.fmount), t('g_' + S.glass));
+  if (S.prod === 'wind') a.push(t('mo_' + S.wmount), t('g_' + S.glass));
+  if (S.prod === 'canopy') a.push(t('g_' + S.glass));
+  return a.filter(Boolean).join(' · ');
+}
+
+/* ============ ZEICHNUNG RECHTS ============ */
+function draw() {
+  var W = 300, H = 300, s = '', glassFill = S.glass === 'satin' ? '#e9eef1' : S.glass === 'grau' ? '#aab4ba' : 'url(#pg)';
+  if (S.prod === 'gel') {
+    /* Draufsicht: Hauswand oben (bei „Über Eck“ auch links), Balkonfläche, Glas mit Handlauf, Maße */
+    var A = S.a, B = S.shape !== 'line' ? S.b : 0, C = S.shape === 'u' ? S.c : 0, side = Math.max(B, C);
+    var sc = side ? Math.min(190 / A, 160 / side) : 190 / A, wA = A * sc, x0 = (W - wA) / 2, y0 = 78;
+    var dB = (S.shape === 'line' ? 90 : B * sc), dC = C * sc, yF = y0 + (S.shape === 'line' ? 90 : B * sc);
+    var wallTxt = LANG === 'ru' ? 'Стена дома' : LANG === 'en' ? 'House wall' : 'Hauswand';
+    s += '<rect x="24" y="' + (y0 - 14) + '" width="252" height="14" fill="#cfd5d9"/><text x="150" y="' + (y0 - 22) + '" text-anchor="middle" font-size="11" fill="#5b666e">' + wallTxt + '</text>';
+    if (S.shape === 'l') s += '<rect x="' + (x0 - 14) + '" y="' + (y0 - 14) + '" width="14" height="' + (dB + 14) + '" fill="#cfd5d9"/>';
+    var pts;
+    if (S.shape === 'line') pts = [[x0, yF], [x0 + wA, yF]];
+    if (S.shape === 'l') pts = [[x0, yF], [x0 + wA, yF], [x0 + wA, y0]];
+    if (S.shape === 'u') pts = [[x0, y0], [x0, yF], [x0 + wA, yF], [x0 + wA, y0 + dB - dC]];
+    s += '<polygon points="' + x0 + ',' + y0 + ' ' + (x0 + wA) + ',' + y0 + ' ' + (x0 + wA) + ',' + yF + ' ' + x0 + ',' + yF + '" fill="#e9edef"/>';
+    var fl = pts.map(function (p) { return p.join(','); }).join(' ');
+    s += '<polyline points="' + fl + '" fill="none" stroke="#a9cddd" stroke-width="8" stroke-linejoin="round"/><polyline points="' + fl + '" fill="none" stroke="#30363a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+    var mono = 'font-size="12" font-family="IBM Plex Mono, monospace" fill="#1c2226"';
+    s += '<text x="' + (x0 + wA / 2) + '" y="' + (yF + 20) + '" text-anchor="middle" ' + mono + '>A ' + mm(A) + '</text>';
+    if (S.shape === 'l') s += '<text transform="translate(' + (x0 + wA + 16) + ' ' + (y0 + dB / 2) + ') rotate(90)" text-anchor="middle" ' + mono + '>B ' + mm(B) + '</text>';
+    if (S.shape === 'u') {
+      s += '<text transform="translate(' + (x0 - 12) + ' ' + (y0 + dB / 2) + ') rotate(-90)" text-anchor="middle" ' + mono + '>B ' + mm(B) + '</text>';
+      s += '<text transform="translate(' + (x0 + wA + 16) + ' ' + (y0 + dB - dC / 2) + ') rotate(90)" text-anchor="middle" ' + mono + '>C ' + mm(C) + '</text>';
+    }
+  } else if (S.prod === 'franz') {
+    var fw = S.fw, sc2 = Math.min(200 / fw, 1.2), w = fw * sc2, x = (W - w) / 2;
+    s += '<rect x="' + (x - 8) + '" y="20" width="' + (w + 16) + '" height="260" fill="url(#pf)"/><rect x="' + x + '" y="28" width="' + w + '" height="244" fill="#3b4246"/>' + pane(x + 6, 34, w - 12, 232) +
+      '<rect x="' + (x - 18) + '" y="160" width="' + (w + 36) + '" height="110" fill="' + glassFill + '" opacity=".85" stroke="#8fa3ae"/>' +
+      '<text x="150" y="292" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="#1c2226">' + mm(fw) + '</text>';
+  } else if (S.prod === 'wind') {
+    var L = S.wl, Hh = S.wh, sc3 = Math.min(240 / L, 200 / Hh), lw = L * sc3, hh2 = Hh * sc3, x3 = (W - lw) / 2, yb = 250, n = Math.max(1, Math.round(L / 120)), pw = lw / n;
+    s += '<rect x="20" y="' + yb + '" width="260" height="8" fill="#c8b9a2"/>';
+    for (var i = 0; i < n; i++) s += '<rect x="' + (x3 + i * pw + 2) + '" y="' + (yb - hh2) + '" width="' + (pw - 4) + '" height="' + hh2 + '" fill="' + glassFill + '" opacity=".9" stroke="#8fa3ae"/>';
+    for (var j = 0; j <= n; j++) s += '<rect x="' + (x3 + j * pw - 2) + '" y="' + (yb - hh2 - 2) + '" width="4" height="' + (hh2 + 2) + '" fill="url(#pf)"/>';
+    s += '<text x="150" y="276" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="#1c2226">' + mm(L) + ' × ' + mm(Hh) + '</text>';
+  } else {
+    var cw = S.cw, cd = S.cd, sc4 = 200 / 400, ww = cw * sc4 * 1.1, x4 = (W - ww) / 2;
+    s += '<rect x="20" y="20" width="260" height="260" fill="#eceff1"/><rect x="116" y="130" width="68" height="150" fill="url(#pf)"/><rect x="122" y="136" width="56" height="144" fill="#3a4146"/>' +
+      '<rect x="' + x4 + '" y="100" width="' + ww + '" height="' + (8 + cd * 0.08) + '" fill="' + glassFill + '" opacity=".9" stroke="#8fa3ae"/>' +
+      '<text x="150" y="92" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="#1c2226">' + mm(cw) + ' × ' + mm(cd) + '</text>';
+  }
+  $('#draw').innerHTML = DEFS + s;
+}
+
+/* ============ SPEZIFIKATION ============ */
+function choose(tr, pr) {
+  var it = { st: JSON.parse(JSON.stringify(S)), label: tr.name, detail: selText() + ' · ' + dimText(), price: pr, qty: 1, prod: S.prod };
+  if (EDIT !== null) { it.qty = SPEC[EDIT].qty; SPEC[EDIT] = it; EDIT = null; } else SPEC.push(it);
+  renderSpec();
+}
+function renderSpec() {
+  var host = $('#spec');
+  if (!SPEC.length) { host.innerHTML = '<p class="empty">' + t('empty') + '</p>'; $('#send').disabled = true; fit(); return; }
+  var sum = 0, rows = SPEC.map(function (it, i) { sum += it.qty * it.price;
+    return '<tr' + (EDIT === i ? ' style="background:var(--accent-soft)"' : '') + '><td><b>' + (i + 1) + '. ' + it.label + '</b><div class="d">' + it.detail + '</div><div class="act"><button type="button" data-edit="' + i + '">' + t('edit') + '</button><button type="button" data-del="' + i + '">' + t('del') + '</button></div></td>' +
+      '<td class="n"><input class="q" type="number" min="1" max="99" value="' + it.qty + '" data-qty="' + i + '"></td><td class="n">' + fmt(it.price) + '</td><td class="n"><b>' + fmt(it.qty * it.price) + '</b></td></tr>'; });
+  host.innerHTML = '<table><thead><tr><th>' + t('th_pos') + '</th><th style="text-align:center">' + t('th_qty') + '</th><th style="text-align:right">' + t('th_price') + '</th><th style="text-align:right">' + t('th_sum') + '</th></tr></thead><tbody>' + rows.join('') + '</tbody>' +
+    '<tfoot><tr><td colspan="3" style="text-align:right;color:var(--muted)">' + t('total') + '</td><td class="n"><b>' + fmt(sum) + '</b></td></tr></tfoot></table>';
+  $('#send').disabled = false;
+  host.querySelectorAll('[data-qty]').forEach(function (inp) { inp.addEventListener('change', function () { SPEC[this.dataset.qty].qty = Math.min(99, Math.max(1, parseInt(this.value) || 1)); renderSpec(); }); });
+  host.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { SPEC.splice(+this.dataset.del, 1); EDIT = null; renderSpec(); }); });
+  host.querySelectorAll('[data-edit]').forEach(function (b) { b.addEventListener('click', function () { var it = SPEC[+this.dataset.edit]; EDIT = +this.dataset.edit; S = JSON.parse(JSON.stringify(it.st)); renderAll(); renderSpec(); window.scrollTo({ top: 0, behavior: 'smooth' }); if (window.parent !== window) window.parent.postMessage({ type: 'db-scroll-top' }, '*'); }); });
+  fit();
+}
+$('#send').addEventListener('click', function () {
+  if (!SPEC.length) return;
+  var sum = 0, lines = SPEC.map(function (it, i) { sum += it.qty * it.price; return (i + 1) + '. ' + it.qty + ' × ' + it.label + ' – ' + it.detail + ' – ' + fmt(it.qty * it.price); });
+  var note = t('msg_head') + '\n' + lines.join('\n') + '\n' + t('msg_total', { sum: fmt(sum) });
+  var M = { gel: 'Glasgeländer', franz: 'Französischer Balkon', wind: 'Glasgeländer', canopy: 'Glasgeländer' };
+  var what = SPEC.map(function (it) { return M[it.prod]; }).filter(function (x, i, a) { return a.indexOf(x) === i; }).join('|');
+  if (window.parent !== window) window.parent.postMessage({ type: 'db-anfrage', what: what, note: note }, '*');
+  else location.href = 'index.html#kontakt';
+});
+var lastH = 0;
+function fit() { if (window.parent === window) return; requestAnimationFrame(function () { var h = document.documentElement.scrollHeight; if (h !== lastH) { lastH = h; window.parent.postMessage({ type: 'db-height', h: h }, '*'); } }); }
+window.addEventListener('resize', fit);
+renderAll(); renderSpec();
+
+/* ===== Projektliste: Positionen gehen an die Website, damit die Liste beim Wechsel zwischen den Rechnern erhalten bleibt ===== */
+(function () {
+  if (window.parent === window) return;
+  var CALC = 'glas', ready = false, M = {"gel": "Glasgeländer", "franz": "Französischer Balkon", "wind": "Glasgeländer", "canopy": "Glasgeländer"};
+  function sync() {
+    if (!ready) return;
+    var sum = 0, lines = SPEC.map(function (it) { sum += it.qty * it.price; return it.qty + ' × ' + it.label + ' – ' + it.detail + ' – ' + fmt(it.qty * it.price); });
+    var what = SPEC.map(function (it) { return M[it.prod] || M._; }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
+    window.parent.postMessage({ type: 'db-spec', calc: CALC, items: JSON.parse(JSON.stringify(SPEC)), sum: sum, lines: lines, what: what }, '*');
+  }
+  var base = renderSpec;
+  renderSpec = function () { base.apply(this, arguments); sync(); };
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || d.type !== 'db-spec-restore' || d.calc !== CALC) return;
+    ready = true;
+    if (Array.isArray(d.items)) { SPEC = d.items; EDIT = null; renderSpec(); }
+  });
+  window.parent.postMessage({ type: 'db-ready', calc: CALC }, '*');
+})();
+
+var UXT = {"de": {"more": "Weitere Optionen", "less": "Weniger Optionen", "unknown": "Maße unbekannt? Foto per WhatsApp schicken", "wa_text": "Hallo D&B, ich kenne meine Maße nicht. Ich schicke Ihnen Fotos.", "trust": "<b>★ 5,0</b> bei Google · Aufmaß kostenlos · Fixpreis vor Auftrag", "p_klein": "Klein", "p_std": "Standardfenster", "p_gross": "Großes Fenster", "p_btuer": "Balkontür", "p_ttuer": "Terrassentür", "p_st": "Standard", "p_breit": "Breit", "p_3": "Mittel", "p_4": "Groß", "p_5": "Sehr groß", "p_balk": "Balkon", "p_terr": "Terrasse", "p_lang": "Lang"}, "en": {"more": "More options", "less": "Fewer options", "unknown": "Sizes unknown? Send a photo via WhatsApp", "wa_text": "Hello D&B, I do not know my sizes. I will send you photos.", "trust": "<b>★ 5.0</b> on Google · free measurement · fixed price before you order", "p_klein": "Small", "p_std": "Standard window", "p_gross": "Large window", "p_btuer": "Balcony door", "p_ttuer": "Patio door", "p_st": "Standard", "p_breit": "Wide", "p_3": "Medium", "p_4": "Large", "p_5": "Very large", "p_balk": "Balcony", "p_terr": "Terrace", "p_lang": "Long"}, "ru": {"more": "Дополнительные параметры", "less": "Скрыть параметры", "unknown": "Не знаете размеры? Пришлите фото в WhatsApp", "wa_text": "Здравствуйте, D&B! Я не знаю размеров, пришлю фото.", "trust": "<b>★ 5,0</b> в Google · замер бесплатно · фиксированная цена до заказа", "p_klein": "Маленькое", "p_std": "Обычное окно", "p_gross": "Большое окно", "p_btuer": "Балконная дверь", "p_ttuer": "Дверь на террасу", "p_st": "Стандарт", "p_breit": "Широкая", "p_3": "Средняя", "p_4": "Большая", "p_5": "Очень большая", "p_balk": "Балкон", "p_terr": "Терраса", "p_lang": "Длинное"}};
+window.UXCFG = {
+  calc: 'glas', unit: 'm', fmtDim: function (v) { return (v / 100).toLocaleString(LANG === 'en' ? 'en-GB' : 'de-AT'); },
+  key: function () { return { gel: 'a', franz: 'fw', wind: 'wl', canopy: 'cw' }[S.prod]; },
+  sizeHost: function () { return document.querySelector('#steps .dims'); },
+  presets: function () { if (S.prod === 'gel' && S.shape !== 'line') return null; return ({
+    gel: [{ k: 'p_balk', v: [300] }, { k: 'p_3', v: [500] }, { k: 'p_terr', v: [800] }],
+    franz: [{ k: 'p_klein', v: [100] }, { k: 'p_st', v: [120] }, { k: 'p_breit', v: [160] }],
+    wind: [{ k: 'p_3', v: [300] }, { k: 'p_4', v: [500] }, { k: 'p_lang', v: [800] }],
+    canopy: [{ k: 'p_klein', v: [150] }, { k: 'p_st', v: [200] }, { k: 'p_breit', v: [300] }] })[S.prod]; },
+  cur: function () { return [S[this.key()]]; },
+  set: function (v) { S[this.key()] = v[0]; renderAll(); },
+  adv: function () { var keys = { gel: ['mount', 'height', 'glass', 'rail', 'demont'], franz: ['glass'], wind: ['wmount', 'glass'], canopy: ['glass'] }[S.prod] || [];
+    return keys.map(function (k) { var h = document.querySelector('[data-seg="' + k + '"]'); return h && h.closest('.step'); }); }
+};
+/* ===== Bedienkomfort: Maß-Vorschläge, weitere Optionen eingeklappt, Vertrauenszeile, Live-Preis an die Website ===== */
+(function () {
+  var C = window.UXCFG; if (!C) return;
+  var L = (typeof LANG !== 'undefined' && UXT[LANG]) ? LANG : 'de', U = UXT[L], open = false, lastLive = '';
+  function el(h) { var d = document.createElement('div'); d.innerHTML = h; return d.firstChild; }
+  function decorate() {
+    /* 1) Maß-Vorschläge + „Maße unbekannt?“ */
+    var host = C.sizeHost(), list = C.presets();
+    var old = document.getElementById('ux-pre'); if (old) old.remove();
+    if (host && list && list.length) {
+      var cur = C.cur(), box = el('<div class="ux-pre" id="ux-pre"></div>');
+      list.forEach(function (p) {
+        var b = document.createElement('button'); b.type = 'button';
+        var on = p.v.every(function (v, i) { return Math.round(cur[i]) === v; });
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.innerHTML = '<b>' + (U[p.k] || p.k) + '</b><small>' + p.v.map(function (v) { return C.fmtDim ? C.fmtDim(v) : v; }).join(' × ') + (C.unit ? ' ' + (L === 'ru' ? ({ cm: 'см', m: 'м' })[C.unit] : C.unit) : '') + '</small>';
+        b.dataset.v = p.v.join(',');
+        b.addEventListener('click', function () { C.set(p.v); });
+        box.appendChild(b);
+      });
+      var wa = 'https://wa.me/436767202149?text=' + encodeURIComponent(U.wa_text);
+      box.appendChild(el('<a class="ux-unk" href="' + wa + '" target="_blank" rel="noopener">' + U.unknown + '</a>'));
+      host.parentNode.insertBefore(box, host);
+    }
+    /* 2) Weitere Optionen einklappen */
+    var adv = C.adv().filter(Boolean), tg = document.getElementById('ux-adv'); if (tg) tg.remove();
+    if (adv.length) {
+      var sum = adv.map(function (s) { var p = s.querySelector('[aria-pressed="true"]'); return p ? p.textContent.trim() : ''; }).filter(Boolean).join(' · ');
+      tg = el('<button type="button" class="ux-adv" id="ux-adv" aria-expanded="' + open + '"><span><b>' + (open ? U.less : U.more) + '</b>' + (open ? '' : '<small>' + sum + '</small>') + '</span><i aria-hidden="true">' + (open ? '−' : '+') + '</i></button>');
+      tg.addEventListener('click', function () { open = !open; decorate(); fit && fit(); });
+      adv[0].parentNode.insertBefore(tg, adv[0]);
+      adv.forEach(function (s) { s.classList.toggle('ux-hide', !open); });
+    }
+    /* 3) Vertrauenszeile unter dem Preis */
+    var disc = document.getElementById('disc');
+    if (disc && !document.getElementById('ux-trust')) disc.parentNode.insertBefore(el('<p class="ux-trust" id="ux-trust">' + U.trust + '</p>'), disc);
+    live();
+  }
+  function markPresets() {
+    var cur = C.cur();
+    [].forEach.call(document.querySelectorAll('#ux-pre button'), function (b) {
+      var v = b.dataset.v.split(',').map(Number);
+      b.setAttribute('aria-pressed', v.every(function (x, i) { return Math.round(cur[i]) === x; }) ? 'true' : 'false');
+    });
+  }
+  /* Live-Preis für die Leiste auf der Website */
+  function recCard() {
+    var r = document.querySelector('#res .tier.rec');
+    if (r) return r;
+    var all = [].slice.call(document.querySelectorAll('#res .tier')).filter(function (x) { var b = x.querySelector('button'); return b && !b.disabled; });
+    return all[0] || null;
+  }
+  function live() {
+    markPresets();
+    if (window.parent === window) return;
+    requestAnimationFrame(function () {
+      var r = recCard(), st = document.getElementById('res'); st = st && (st.closest('.step') || st);
+      var pr = r && r.querySelector('.price'), price = pr ? (pr.childNodes[0].textContent || '').trim() : '';
+      var box = st ? st.getBoundingClientRect() : { top: 0, bottom: 0 };
+      var msg = { type: 'db-live', calc: C.calc, ok: !!(r && price), name: r ? r.querySelector('.name').textContent : '', price: price, resTop: box.top + window.scrollY, resBottom: box.bottom + window.scrollY };
+      var key = JSON.stringify(msg); if (key === lastLive) return; lastLive = key;
+      window.parent.postMessage(msg, '*');
+    });
+  }
+  var res = document.getElementById('res'); if (res) new MutationObserver(live).observe(res, { childList: true, subtree: true, characterData: true });
+  window.addEventListener('resize', live);
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || d.type !== 'db-cmd' || d.calc !== C.calc) return;
+    if (d.cmd === 'add') { var r = recCard(), b = r && r.querySelector('button'); if (b && !b.disabled) b.click(); }
+  });
+  var base = renderAll; renderAll = function () { base.apply(this, arguments); decorate(); };
+  decorate();
+})();
+</script>
+</body>
+</html>
