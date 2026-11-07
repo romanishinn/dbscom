@@ -499,7 +499,15 @@ $('#send').addEventListener('click', function () {
   var M = { gel: 'Glasgeländer', franz: 'Französischer Balkon', wind: 'Glasgeländer', canopy: 'Glasgeländer' };
   var what = SPEC.map(function (it) { return M[it.prod]; }).filter(function (x, i, a) { return a.indexOf(x) === i; }).join('|');
   if (window.parent !== window) window.parent.postMessage({ type: 'db-anfrage', what: what, note: note }, '*');
-  else location.href = 'index.html#kontakt';
+  else {
+    try {
+      var C = JSON.parse(localStorage.getItem('db-cart') || '{}') || {}, s2 = 0;
+      var ls = SPEC.map(function (it) { s2 += it.qty * it.price; return it.qty + ' × ' + it.label + ' – ' + it.detail + ' – ' + fmt(it.qty * it.price); });
+      C['glas'] = { items: JSON.parse(JSON.stringify(SPEC)), sum: s2, lines: ls, what: what.split('|') };
+      localStorage.setItem('db-cart', JSON.stringify(C));
+    } catch (e) {}
+    location.href = 'index.html#anfrage';
+  }
 });
 var lastH = 0;
 function fit() { if (window.parent === window) return; requestAnimationFrame(function () { var h = document.documentElement.scrollHeight; if (h !== lastH) { lastH = h; window.parent.postMessage({ type: 'db-height', h: h }, '*'); } }); }
@@ -562,7 +570,7 @@ window.UXCFG = {
         box.appendChild(b);
       });
       var wa = 'https://wa.me/436767202149?text=' + encodeURIComponent(U.wa_text);
-      box.appendChild(el('<a class="ux-unk" href="' + wa + '" target="_blank" rel="noopener">' + U.unknown + '</a>'));
+
       host.parentNode.insertBefore(box, host);
     }
     /* 2) Weitere Optionen einklappen */
