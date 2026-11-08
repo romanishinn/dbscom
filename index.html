@@ -130,7 +130,9 @@ nav.main a[aria-current="page"] { background: var(--anthrazit); color: #fff; }
 .drawer .close { align-self: flex-end; width: 48px; height: 48px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 24px; cursor: pointer; }
 
 /* Hero */
-.hero { position: relative; color: #fff; background: #20262a; overflow: hidden; }
+.hero { position: relative; color: #fff; background: #20262a; overflow: hidden; display: flex; flex-direction: column; min-height: calc(100svh - 77px); }
+.hero > .wrap { flex: 1 0 auto; align-content: center; }
+@media (max-width: 760px) { .hero { min-height: calc(100svh - 77px - 84px); } }
 .hero .bg { position: absolute; inset: 0; }
 .hero .bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 50%; opacity: 0; transition: opacity 1.2s ease; }
 .hero .bg img.on { opacity: 1; animation: drift 9s ease-out both; }
@@ -334,7 +336,8 @@ section { padding-block: 96px; }
 .dark .kicker { color: var(--band-muted); }
 .cfg-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 18px 40px; margin-bottom: 22px; }
 .cfg-head > div { display: grid; gap: 12px; max-width: 760px; }
-.cfg-steps { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 16px; color: var(--band-muted); }
+.cfg-steps { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; gap: 10px 26px; font-size: 16px; color: var(--band-muted); }
+@media (max-width: 760px) { .cfg-steps { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 .cfg-steps span { display: inline-flex; gap: 8px; align-items: center; }
 .cfg-steps i { width: 26px; height: 26px; border-radius: 50%; background: var(--gelb); color: var(--gelb-ink); font-style: normal; font-weight: 800; font-size: 14px; display: grid; place-items: center; }
 .frame { border-radius: 18px; overflow: hidden; border: 1px solid var(--band-line); background: #cfd8de; }
