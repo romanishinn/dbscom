@@ -237,6 +237,18 @@ html[lang="ru"] .subnav button, html[lang="en"] .subnav button { padding-inline:
 
 section { padding-block: 96px; }
 @media (max-width: 760px) { section { padding-block: 64px; } }
+/* Jeder Abschnitt mindestens ein Bildschirm hoch, Inhalt vertikal mittig */
+#start > section:not(.hero), #kontakt { min-height: calc(100svh - 77px); display: flex; flex-direction: column; justify-content: center; }
+#start > section:not(.hero) > *, #kontakt > * { width: 100%; }
+#start > section:not(.hero)[style*="padding-top:0"] { padding-top: 96px !important; }
+@media (max-width: 760px) {
+  #start > section:not(.hero), #kontakt { min-height: calc(100svh - 77px - 84px); }
+  #start > section:not(.hero)[style*="padding-top:0"] { padding-top: 64px !important; }
+}
+@media (min-width: 1024px) and (hover: hover) {
+  html { scroll-snap-type: y proximity; }
+  #start > section, #kontakt { scroll-snap-align: start; }
+}
 .head { display: flex; flex-wrap: wrap; gap: 20px 48px; align-items: end; justify-content: space-between; margin-bottom: 40px; }
 .head > div { display: grid; gap: 14px; max-width: 760px; }
 
